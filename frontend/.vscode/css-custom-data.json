@@ -1,0 +1,29 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@theme",
+      "description": "Tailwind CSS v4 theme: maps design tokens to utility classes."
+    },
+    {
+      "name": "@custom-variant",
+      "description": "Tailwind CSS v4 custom variant definition."
+    },
+    {
+      "name": "@apply",
+      "description": "Tailwind CSS: inline utility classes in CSS rules."
+    },
+    {
+      "name": "@utility",
+      "description": "Tailwind CSS v4 custom utility definition."
+    },
+    {
+      "name": "@source",
+      "description": "Tailwind CSS v4 content source paths."
+    },
+    {
+      "name": "@plugin",
+      "description": "Tailwind CSS v4 plugin import."
+    }
+  ]
+}
