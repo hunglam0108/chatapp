@@ -1,0 +1,8 @@
+node_modules/
+.env
+jsconfig.json
+*.log
+.agents
+agent
+package-lock.json
+.freebuff
