@@ -12,7 +12,7 @@ export const checkFriendship = async (req, res, next) => {
     if (!recipientId && memberIds.length === 0) {
       return res
         .status(400)
-        .json({ message: "Cần cung cấp recipientId hoặc memberIds" });
+        .json({ message: "recipientId or memberIds is required" });
     }
 
     if (recipientId) {
@@ -21,7 +21,7 @@ export const checkFriendship = async (req, res, next) => {
       const isFriend = await Friend.findOne({ userA, userB });
 
       if (!isFriend) {
-        return res.status(403).json({ message: "Bạn chưa kết bạn với người này" });
+        return res.status(403).json({ message: "You are not friends with this user" });
       }
 
       return next();
@@ -39,13 +39,13 @@ export const checkFriendship = async (req, res, next) => {
     if (notFriends.length > 0) {
       return res
         .status(403)
-        .json({ message: "Bạn chỉ có thể thêm bạn bè vào nhóm.", notFriends });
+        .json({ message: "You can only add friends to a group.", notFriends });
     }
 
     next();
   } catch (error) {
-    console.error("Lỗi xảy ra khi checkFriendship:", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error in checkFriendship:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -57,7 +57,7 @@ export const checkGroupMembership = async (req, res, next) => {
     const conversation = await Conversation.findById(conversationId);
 
     if (!conversation) {
-      return res.status(404).json({ message: "Không tìm thấy cuộc trò chuyện" });
+      return res.status(404).json({ message: "Conversation not found" });
     }
 
     const isMember = conversation.participants.some(
@@ -65,14 +65,14 @@ export const checkGroupMembership = async (req, res, next) => {
     );
 
     if (!isMember) {
-      return res.status(403).json({ message: "Bạn không ở trong group này." });
+      return res.status(403).json({ message: "You are not a member of this group." });
     }
 
     req.conversation = conversation;
 
     next();
   } catch (error) {
-    console.error("Lỗi checkGroupMembership:", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error in checkGroupMembership:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

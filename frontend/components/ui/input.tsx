@@ -7,6 +7,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
     <InputPrimitive
       type={type}
+      autoComplete="off"
       data-slot="input"
       className={cn(
         "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none",

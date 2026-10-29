@@ -1,4 +1,4 @@
-// Shape returned by GET /api/user/me (mongoose user doc, minus password).
+// Dạng dữ liệu trả về từ GET /api/user/me (user doc của mongoose, bỏ password).
 interface User {
     _id: string;
     username: string;
@@ -23,8 +23,8 @@ interface RegisterRequest {
     fullName: string;
 }
 
-// Shape returned by POST /api/auth/signIn — only the token (profile is
-// loaded separately via /user/me).
+// Dạng dữ liệu trả về từ POST /api/auth/signIn — chỉ có token (profile được
+// load riêng qua /user/me).
 interface AuthResponse {
     message?: string;
     accessToken: string;

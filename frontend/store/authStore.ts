@@ -17,15 +17,15 @@ export interface AuthUserContext {
 }
 
 export interface AuthState {
-    // Statep
+    // State
     user: UserInfo | null;
     accessToken: string | null;
     isAuthenticated: boolean;
     loading: boolean;
-    /** True after an explicit signOut — guards must not call refresh again. */
+    /** True sau khi signOut chủ động — guard không được gọi refresh nữa. */
     signedOut: boolean;
 
-    // Actions
+    // Các action
     signIn: (username: string, password: string) => Promise<void>;
     signUp: (data: {
         userAcc: string,
@@ -53,11 +53,11 @@ export const authStore = create<AuthState>()((set, get) => ({
                 const response = await authApi.signIn(username, password)
 
                 if (!response.accessToken) {
-                    throw new Error('Đăng nhập thất bại')
+                    throw new Error('Sign in failed')
                 }
 
-                // The signIn response only carries the token — load the full
-                // profile right after so user._id etc. are correct.
+                // Response của signIn chỉ có token — load đầy đủ
+                // profile ngay sau đó để user._id v.v. chính xác.
                 set({
                     accessToken: response.accessToken,
                     isAuthenticated: true,
@@ -77,8 +77,8 @@ export const authStore = create<AuthState>()((set, get) => ({
                         ? err.message
                         : 'Login fail'
                 toast.error(message)
-                // Rethrow so the login form knows authentication failed and
-                // does not redirect the user into the app.
+                // Throw lại để form login biết xác thực thất bại và
+                // không redirect user vào app.
                 throw err
             }
             finally {
@@ -103,8 +103,8 @@ export const authStore = create<AuthState>()((set, get) => ({
                 user: null,
                 accessToken: null,
                 isAuthenticated: false,
-                // Flag so ProtectRoute doesn't fire refresh() right after
-                // logout while the redirect to /signin is still in flight.
+                // Đánh dấu để ProtectRoute không gọi refresh() ngay sau khi
+                // logout trong lúc redirect về /signin vẫn đang diễn ra.
                 signedOut: true,
             }),
         fetchMe: async() =>{
@@ -117,8 +117,8 @@ export const authStore = create<AuthState>()((set, get) => ({
                         _id: response._id,
                         username: response.username,
                         email: response.email,
-                        // /user/me returns displayName & avatarUrl — map them
-                        // to the UserInfo shape used across the app.
+                        // /user/me trả về displayName & avatarUrl — map chúng
+                        // sang dạng UserInfo dùng trong toàn app.
                         fullName: response.displayName ?? response.username,
                         urlAvatar: response.avatarUrl ?? '',
                     }
@@ -153,8 +153,8 @@ export const authStore = create<AuthState>()((set, get) => ({
             catch(err) {
                 console.log(err, 'refresh fail')
                 get().clearState()
-                // Navigation is handled by the caller (ProtectRoute) so we
-                // don't throw redirect errors inside store logic.
+                // Điều hướng do caller (ProtectRoute) xử lý nên
+                // không throw lỗi redirect trong logic của store.
                 throw err
             }
             finally {

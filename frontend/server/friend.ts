@@ -2,7 +2,7 @@ import type { Friend, FriendRequest, SearchUser } from "@/types/UserType";
 import { api } from "./api";
 
 export const friendService = {
-  /** GET /user/search?query=xxx — find users by username or display name */
+  /** GET /user/search?query=xxx — tìm user theo username hoặc tên hiển thị */
   async searchUsers(query: string): Promise<SearchUser[]> {
     const res = await api.get<{ users: SearchUser[] }>(
       `/user/search?query=${encodeURIComponent(query)}`
@@ -25,7 +25,7 @@ export const friendService = {
     return { sent: res.sent ?? [], received: res.received ?? [] };
   },
 
-  /** POST /friends/requests — returns the created request (or an existing one) */
+  /** POST /friends/requests — trả về lời mời vừa tạo (hoặc lời mời đã có) */
   async addFriend(to: string, message?: string): Promise<FriendRequest> {
     const res = await api.post<{ request: FriendRequest }>("/friends/requests", {
       to,

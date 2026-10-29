@@ -3,7 +3,7 @@
 import { Loader2Icon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-/** Centered full-screen loading state (auth checks, route guards, etc). */
+/** Trạng thái loading toàn màn hình, căn giữa (kiểm tra auth, route guard, v.v.). */
 export function LoadingScreen({
   label = "Loading...",
   className,

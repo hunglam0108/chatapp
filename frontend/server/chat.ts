@@ -1,4 +1,20 @@
-import { Conversation, ConversationResponse, Message } from "@/types/ConversationType";
+import type { ChatThemeId } from "@/lib/chat-themes";
+import {
+  Conversation,
+  ConversationResponse,
+  FileMeta,
+  Message,
+  Reaction,
+} from "@/types/ConversationType";
+
+/** Đính kèm tùy chọn đi kèm tin nhắn chat. */
+export interface MessageAttachments {
+  imgUrl?: string;
+  audioUrl?: string;
+  fileUrl?: string;
+  fileMeta?: FileMeta;
+  stickerUrl?: string;
+}
 import { api } from "./api";
 
 interface FetchMessageProps {
@@ -26,13 +42,13 @@ export const chatService = {
   async sendDirectMessage(
     recipientId: string,
     content: string = "",
-    imgUrl?: string,
+    attachments?: MessageAttachments,
     conversationId?: string
   ) {
     const res = await api.post<Message>("/messages/direct", {
       recipientId,
       content,
-      imgUrl,
+      ...attachments,
       conversationId,
     });
 
@@ -42,12 +58,12 @@ export const chatService = {
   async sendGroupMessage(
     conversationId: string,
     content: string = "",
-    imgUrl?: string
+    attachments?: MessageAttachments
   ) {
     const res = await api.post<Message>("/messages/group", {
       conversationId,
       content,
-      imgUrl,
+      ...attachments,
     });
     return res;
   },
@@ -62,7 +78,7 @@ export const chatService = {
     name: string | undefined,
     memberIds: string[]
   ) {
-    // Backend answers { conversation: {...} } — unwrap it for the store.
+    // Backend trả về { conversation: {...} } — bóc ra cho store.
     const res = await api.post<{ conversation: Conversation }>("/conversations", {
       type,
       name: name && name.trim() ? name : undefined,
@@ -71,7 +87,7 @@ export const chatService = {
     return res.conversation;
   },
 
-  /** Leave a group chat; the response is the conversation frozen at leftAt. */
+  /** Rời group chat; response là conversation đã đóng băng tại leftAt. */
   async leaveGroup(conversationId: string): Promise<Conversation> {
     const res = await api.post<{ conversation: Conversation }>(
       `/conversations/${conversationId}/leave`
@@ -79,7 +95,36 @@ export const chatService = {
     return res.conversation;
   },
 
-  /** Delete a group chat (creator only). */
+  async updateSettings(
+    conversationId: string,
+    settings: { theme?: ChatThemeId; quickEmoji?: string }
+  ) {
+    return api.patch<{ conversationId: string; theme: ChatThemeId; quickEmoji: string }>(
+      `/conversations/${conversationId}/settings`,
+      settings
+    );
+  },
+
+  async toggleReaction(messageId: string, emoji: string) {
+    return api.put<{ conversationId: string; messageId: string; reactions: Reaction[] }>(
+      `/messages/${messageId}/reaction`,
+      { emoji }
+    );
+  },
+
+  /** Sửa tin nhắn text của mình (backend cho phép trong vòng 15 phút). */
+  async editMessage(messageId: string, content: string) {
+    const res = await api.patch<{ message: Message }>(`/messages/${messageId}`, { content });
+    return res.message;
+  },
+
+  /** Thu hồi tin nhắn của mình với mọi người; file đính kèm cũng bị xóa. */
+  async recallMessage(messageId: string) {
+    const res = await api.delete<{ message: Message }>(`/messages/${messageId}`);
+    return res.message;
+  },
+
+  /** Xóa group chat (chỉ người tạo). */
   async deleteGroup(conversationId: string) {
     return api.delete<{ message: string }>(`/conversations/${conversationId}`);
   },

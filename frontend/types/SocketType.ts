@@ -1,6 +1,8 @@
 import type { Socket } from "socket.io-client";
-import { Conversation, Message } from "./ConversationType";
+import { Conversation, CustomEmoji, Message, Reaction } from "./ConversationType";
+import type { ChatThemeId } from "@/lib/chat-themes";
 import { Friend, FriendRequest, SearchUser } from "./UserType";
+import type { MessageAttachments } from "@/server/chat";
 
 
 export interface AuthState {
@@ -52,18 +54,18 @@ export interface ChatState {
   sendDirectMessage: (
     recipientId: string,
     content: string,
-    imgUrl?: string
+    attachments?: MessageAttachments
   ) => Promise<void>;
   sendGroupMessage: (
     conversationId: string,
     content: string,
-    imgUrl?: string
+    attachments?: MessageAttachments
   ) => Promise<void>;
-  // add message
-  addMessage: (message: Message) => Promise<void>;
-  // update convo
+  /** Thêm các tin nhắn do socket đẩy về trong một lần cập nhật store (gom batch). */
+  addMessages: (messages: Message[]) => void;
+  // cập nhật convo
   updateConversation: (conversation: unknown) => void;
-  /** Drop a conversation locally (used when a group is deleted). */
+  /** Bỏ conversation ở local (dùng khi nhóm bị xóa). */
   removeConversation: (conversationId: string) => void;
   markAsSeen: () => Promise<void>;
   addConvo: (convo: Conversation) => void;
@@ -72,9 +74,23 @@ export interface ChatState {
     name: string,
     memberIds: string[]
   ) => Promise<void>;
-  /** Leave a group chat; old history stays visible, new messages stop. */
+  /** Đổi theme / quick emoji dùng chung của conversation. */
+  updateConversationSettings: (
+    conversationId: string,
+    settings: { theme?: ChatThemeId; quickEmoji?: string }
+  ) => Promise<void>;
+  toggleReaction: (messageId: string, emoji: string) => Promise<void>;
+  /** Áp dụng danh sách reaction do server đẩy về (socket event đã gom batch). */
+  applyReactions: (
+    updates: { conversationId: string; messageId: string; reactions: Reaction[] }[]
+  ) => void;
+  editMessage: (messageId: string, content: string) => Promise<void>;
+  recallMessage: (messageId: string) => Promise<void>;
+  /** Thay tin nhắn đã sửa/thu hồi (từ API hoặc socket). */
+  applyMessageUpdate: (message: Message) => void;
+  /** Rời group chat; lịch sử cũ vẫn xem được, không nhận tin nhắn mới. */
   leaveGroup: (conversationId: string) => Promise<void>;
-  /** Delete a group chat (creator only). */
+  /** Xóa group chat (chỉ người tạo). */
   deleteGroup: (conversationId: string) => Promise<void>;
 }
 
@@ -99,15 +115,29 @@ export interface FriendState {
   acceptRequest: (requestId: string) => Promise<void>;
   declineRequest: (requestId: string) => Promise<void>;
   getFriends: () => Promise<void>;
-  /** Called from socket handlers when someone sends us a request */
+  /** Gọi từ socket handler khi có người gửi lời mời cho mình */
   receiveFriendRequest: (request: FriendRequest) => void;
-  /** Called from socket handlers when a request of ours was accepted/declined */
+  /** Gọi từ socket handler khi lời mời mình gửi được chấp nhận/bị từ chối */
   removeSentRequest: (requestId: string) => void;
-  /** Called from socket handlers after we accept: adds the new friend */
+  /** Gọi từ socket handler sau khi mình chấp nhận: thêm bạn mới */
   addFriendFromRequest: (friend: Friend) => void;
   resetFriends: () => void;
 }
 
+export interface EmojiState {
+  emojis: CustomEmoji[];
+  loading: boolean;
+  fetchEmojis: () => Promise<void>;
+  createEmoji: (file: File, name: string) => Promise<void>;
+  deleteEmoji: (emojiId: string) => Promise<void>;
+  reset: () => void;
+}
+
 export interface UserState {
-  updateAvatarUrl: (formData: FormData) => Promise<void>;
+}
+export interface ChatbotState {
+  open: boolean;
+  mascotId: string;
+  setOpen: (open: boolean) => void;
+  setMascotId: (mascotId: string) => void;
 }

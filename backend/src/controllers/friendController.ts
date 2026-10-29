@@ -4,7 +4,7 @@ import FriendRequest from "../models/FriendRequest.ts";
 import { getIo } from "../socket/index.ts";
 import type { Request, Response } from 'express';
 
-/** Payload shape the frontend friendStore expects for received requests. */
+/** Dạng payload mà friendStore ở frontend mong đợi cho lời mời đã nhận. */
 const toRequestPayload = (request: any) => ({
   _id: request._id.toString(),
   from: request.from
@@ -37,13 +37,13 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
     if (from === to) {
       return res
         .status(400)
-        .json({ message: "Không thể gửi lời mời kết bạn cho chính mình" });
+        .json({ message: "You cannot send a friend request to yourself" });
     }
 
     const userExists = await User.exists({ _id: to });
 
     if (!userExists) {
-      return res.status(404).json({ message: "Người dùng không tồn tại" });
+      return res.status(404).json({ message: "User not found" });
     }
 
     let userA = from.toString();
@@ -64,11 +64,11 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
     ]);
 
     if (alreadyFriends) {
-      return res.status(400).json({ message: "Hai người đã là bạn bè" });
+      return res.status(400).json({ message: "You are already friends" });
     }
 
     if (existingRequest) {
-      return res.status(400).json({ message: "Đã có lời mời kết bạn đang chờ" });
+      return res.status(400).json({ message: "A friend request is already pending" });
     }
 
     const request = await FriendRequest.create({
@@ -77,7 +77,7 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
       message,
     });
 
-    // Real-time: notify the receiver so their sidebar updates instantly.
+    // Real-time: báo cho người nhận để sidebar cập nhật ngay.
     const populated = await FriendRequest.findById(request._id)
       .populate("from", "_id username displayName avatarUrl")
       .populate("to", "_id username displayName avatarUrl")
@@ -90,10 +90,10 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
 
     return res
       .status(201)
-      .json({ message: "Gửi lời mời kết bạn thành công", request: toRequestPayload(populated) });
+      .json({ message: "Friend request sent", request: toRequestPayload(populated) });
   } catch (error) {
-    console.error("Lỗi khi gửi yêu cầu kết bạn", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error sending friend request", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -105,13 +105,13 @@ export const acceptFriendRequest = async (req: Request, res: Response) => {
     const request = await FriendRequest.findById(requestId);
 
     if (!request) {
-      return res.status(404).json({ message: "Không tìm thấy lời mời kết bạn" });
+      return res.status(404).json({ message: "Friend request not found" });
     }
 
     if (request.to.toString() !== userId.toString()) {
       return res
         .status(403)
-        .json({ message: "Bạn không có quyền chấp nhận lời mời này" });
+        .json({ message: "You are not allowed to accept this request" });
     }
 
     const friend = await Friend.create({
@@ -125,7 +125,7 @@ export const acceptFriendRequest = async (req: Request, res: Response) => {
       .select("_id displayName avatarUrl username")
       .lean();
 
-    // Real-time: tell the sender their request was accepted.
+    // Real-time: báo cho người gửi rằng lời mời đã được chấp nhận.
     getIo().to(request.from.toString()).emit("friend-request:accepted", {
       requestId: requestId,
       newFriend: {
@@ -137,7 +137,7 @@ export const acceptFriendRequest = async (req: Request, res: Response) => {
     });
 
     return res.status(200).json({
-      message: "Chấp nhận lời mời kết bạn thành công",
+      message: "Friend request accepted",
       newFriend: {
         _id: from?._id?.toString?.() ?? from?._id,
         username: from?.username,
@@ -146,8 +146,8 @@ export const acceptFriendRequest = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error("Lỗi khi chấp nhận lời mời kết bạn", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error accepting friend request", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -159,26 +159,26 @@ export const declineFriendRequest = async (req: Request, res: Response) => {
     const request = await FriendRequest.findById(requestId);
 
     if (!request) {
-      return res.status(404).json({ message: "Không tìm thấy lời mời kết bạn" });
+      return res.status(404).json({ message: "Friend request not found" });
     }
 
     if (request.to.toString() !== userId.toString()) {
       return res
         .status(403)
-        .json({ message: "Bạn không có quyền từ chối lời mời này" });
+        .json({ message: "You are not allowed to decline this request" });
     }
 
     await FriendRequest.findByIdAndDelete(requestId);
 
-    // Real-time: tell the sender their request was declined.
+    // Real-time: báo cho người gửi rằng lời mời đã bị từ chối.
     getIo().to(request.from.toString()).emit("friend-request:declined", {
       requestId: requestId,
     });
 
     return res.sendStatus(204);
   } catch (error) {
-    console.error("Lỗi khi từ chối lời mời kết bạn", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error declining friend request", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -210,8 +210,8 @@ export const getAllFriends = async (req: Request, res: Response) => {
 
     return res.status(200).json({ friends });
   } catch (error) {
-    console.error("Lỗi khi lấy danh sách bạn bè", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error fetching friends", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -228,7 +228,7 @@ export const getFriendRequests = async (req: Request, res: Response) => {
 
     res.status(200).json({ sent, received });
   } catch (error) {
-    console.error("Lỗi khi lấy danh sách yêu cầu kết bạn", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error fetching friend requests", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

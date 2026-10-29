@@ -6,3 +6,5 @@ jsconfig.json
 agent
 package-lock.json
 .freebuff
+.DS_Store
+backend/uploads/

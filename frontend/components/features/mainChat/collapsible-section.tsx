@@ -9,16 +9,16 @@ interface CollapsibleSectionProps {
   label: string
   count?: number
   defaultOpen?: boolean
-  /** Extra header control (e.g. a "+" button); click does not toggle. */
+  /** Control phụ ở header (vd. nút "+"); click vào không toggle. */
   action?: React.ReactNode
   children: React.ReactNode
 }
 
 /**
- * Sidebar section with a toggle header. The header behaves like a button:
- * on hover it shows a border and a different background color, and clicking
- * it shows/hides the list inside. Content is capped with a max height and
- * scrolls when it overflows.
+ * Section của sidebar có header để toggle. Header hoạt động như một nút:
+ * khi hover hiện viền và đổi màu nền, click vào
+ * sẽ hiện/ẩn danh sách bên trong. Nội dung có chiều cao tối đa và
+ * cuộn khi bị tràn.
  */
 export function CollapsibleSection({
   label,

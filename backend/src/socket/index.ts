@@ -6,9 +6,9 @@ import { getUserConversationsForSocketIO } from "../controllers/conservationCont
 let io: Server | null = null;
 
 /**
- * Attach Socket.IO to the main HTTP server (the same express app that serves
- * the REST API) so REST routes, CORS and cookies all live in one place.
- * Must be called before the server starts listening.
+ * Gắn Socket.IO vào HTTP server chính (cùng express app phục vụ
+ * REST API) để REST routes, CORS và cookie nằm cùng một chỗ.
+ * Phải gọi trước khi server bắt đầu listen.
  */
 export const initSocket = (httpServer: http.Server) => {
   io = new Server(httpServer, {
@@ -49,10 +49,10 @@ export const initSocket = (httpServer: http.Server) => {
   return io;
 };
 
-/** Accessor for controllers — returns the initialized Socket.IO server. */
+/** Accessor cho controller — trả về Socket.IO server đã khởi tạo. */
 export const getIo = (): Server => {
   if (!io) {
-    throw new Error("Socket.IO chưa được khởi tạo — gọi initSocket trước");
+    throw new Error("Socket.IO is not initialized — call initSocket first");
   }
   return io;
 };

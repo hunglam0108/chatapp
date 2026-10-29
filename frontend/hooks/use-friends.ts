@@ -3,8 +3,8 @@
 import { friendStore } from "@/store/friendStore";
 
 /**
- * Friend request actions for the sidebar UI (search users, send/accept/decline
- * requests). State is read from friendStore selectors in the components.
+ * Các action lời mời kết bạn cho UI sidebar (tìm user, gửi/chấp nhận/từ chối
+ * lời mời). State được đọc qua selector của friendStore trong component.
  */
 export function useFriends() {
   return {

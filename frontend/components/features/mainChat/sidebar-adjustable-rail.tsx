@@ -29,7 +29,7 @@ export function SidebarAdjustableRail({
   const [showWidthPopover, setShowWidthPopover] = React.useState(false)
   const [width, setWidth] = React.useState("19rem")
 
-  // Restore the last chosen width from a cookie once on mount.
+  // Khôi phục độ rộng đã chọn lần trước từ cookie một lần khi mount.
   React.useEffect(() => {
     const saved = readCookie(SIDEBAR_WIDTH_COOKIE)
     if (saved && WIDTH_PRESETS.some((p) => p.value === saved)) {
@@ -37,7 +37,7 @@ export function SidebarAdjustableRail({
     }
   }, [])
 
-  // Persist every width change in a long-lived cookie.
+  // Lưu mọi thay đổi độ rộng vào cookie dài hạn.
   React.useEffect(() => {
     if (typeof document === "undefined") return
     document.cookie = `${SIDEBAR_WIDTH_COOKIE}=${width}; path=/; max-age=31536000`
@@ -56,7 +56,7 @@ export function SidebarAdjustableRail({
 
   return (
     <>
-      {/* Always-visible rail header: collapse toggle + width control. */}
+      {/* Header của rail luôn hiển thị: nút thu gọn + điều chỉnh độ rộng. */}
       <div
         className={clsx(
           "flex flex-col gap-1 h-full items-center",
@@ -131,7 +131,7 @@ export function SidebarAdjustableRail({
         )}
       </div>
 
-      {/* Width carrier — the original rail still gets its event props. */}
+      {/* Phần mang độ rộng — rail gốc vẫn nhận event props. */}
       <button
         {...props}
         className={clsx(

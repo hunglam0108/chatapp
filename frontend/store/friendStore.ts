@@ -4,7 +4,7 @@ import type { Friend, FriendRequest } from "@/types/UserType";
 import type { FriendState } from "@/types/SocketType";
 import { friendService } from "@/server/friend";
 
-/** Monotonic counter to discard out-of-order search responses. */
+/** Bộ đếm tăng dần để bỏ các response tìm kiếm về sai thứ tự. */
 let searchSeq = 0;
 
 export const friendStore = create<FriendState>()((set, get) => ({
@@ -27,12 +27,12 @@ export const friendStore = create<FriendState>()((set, get) => ({
     set({ searchLoading: true });
     try {
       const users = await friendService.searchUsers(trimmed);
-      // Ignore stale responses (user kept typing after this request started).
+      // Bỏ qua response cũ (user vẫn gõ tiếp sau khi request này bắt đầu).
       if (seq !== searchSeq) return;
       set({ searchResults: users, searchLoading: false });
     } catch (error) {
       if (seq !== searchSeq) return;
-      console.error("Lỗi khi tìm kiếm người dùng:", error);
+      console.error("Error searching users:", error);
       set({ searchResults: [], searchLoading: false });
     }
   },
@@ -44,7 +44,7 @@ export const friendStore = create<FriendState>()((set, get) => ({
       const friends = await friendService.getFriends();
       set({ friends });
     } catch (error) {
-      console.error("Lỗi khi lấy danh sách bạn bè:", error);
+      console.error("Error fetching friends:", error);
     }
   },
 
@@ -54,7 +54,7 @@ export const friendStore = create<FriendState>()((set, get) => ({
       const { sent, received } = await friendService.getAllFriendRequests();
       set({ sentList: sent, receivedList: received });
     } catch (error) {
-      console.error("Lỗi khi lấy lời mời kết bạn:", error);
+      console.error("Error fetching friend requests:", error);
     } finally {
       set({ loading: false });
     }
@@ -67,18 +67,18 @@ export const friendStore = create<FriendState>()((set, get) => ({
       if (!exists) {
         set((state) => ({ sentList: [request, ...state.sentList] }));
       }
-      toast.success("Đã gửi lời mời kết bạn");
+      toast.success("Friend request sent");
       return request._id;
     } catch (error) {
       const apiMessage =
-        error instanceof Error ? error.message : "Gửi lời mời kết bạn thất bại";
+        error instanceof Error ? error.message : "Failed to send friend request";
       toast.error(apiMessage);
       throw error;
     }
   },
 
   acceptRequest: async (requestId: string) => {
-    // Optimistic: remove from received list, roll back on failure.
+    // Optimistic: xóa khỏi danh sách đã nhận, rollback nếu thất bại.
     const previous = get().receivedList;
     set((state) => ({
       receivedList: state.receivedList.filter((r) => r._id !== requestId),
@@ -89,11 +89,11 @@ export const friendStore = create<FriendState>()((set, get) => ({
       if (!exists) {
         set((state) => ({ friends: [newFriend, ...state.friends] }));
       }
-      toast.success("Chấp nhận lời mời kết bạn thành công");
+      toast.success("Friend request accepted");
     } catch (error) {
       set({ receivedList: previous });
-      console.error("Lỗi khi chấp nhận lời mời kết bạn:", error);
-      toast.error("Chấp nhận lời mời kết bạn thất bại");
+      console.error("Error accepting friend request:", error);
+      toast.error("Failed to accept friend request");
     }
   },
 
@@ -106,8 +106,8 @@ export const friendStore = create<FriendState>()((set, get) => ({
       await friendService.declineRequest(requestId);
     } catch (error) {
       set({ receivedList: previous });
-      console.error("Lỗi khi từ chối lời mời kết bạn:", error);
-      toast.error("Từ chối lời mời kết bạn thất bại");
+      console.error("Error declining friend request:", error);
+      toast.error("Failed to decline friend request");
     }
   },
 
@@ -117,8 +117,8 @@ export const friendStore = create<FriendState>()((set, get) => ({
     set((state) => ({
       receivedList: [request, ...state.receivedList],
     }));
-    const senderName = request.from?.displayName ?? "ai đó";
-    toast.info(`${senderName} đã gửi lời mời kết bạn`);
+    const senderName = request.from?.displayName ?? "Someone";
+    toast.info(`${senderName} sent you a friend request`);
   },
 
   removeSentRequest: (requestId: string) => {

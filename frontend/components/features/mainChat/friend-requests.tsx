@@ -81,7 +81,7 @@ function RequestRow({ requestId }: { requestId: string }) {
   );
 }
 
-/** Received friend requests with inline accept/decline. */
+/** Lời mời kết bạn đã nhận, kèm nút chấp nhận/từ chối inline. */
 export function FriendRequests() {
   const receivedList = friendStore((s) => s.receivedList);
 

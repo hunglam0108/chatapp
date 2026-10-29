@@ -10,8 +10,8 @@ export const useAuthInit = () => {
   const pathname = usePathname()
 
   const init = useCallback(async () => {
-    // No token in memory: try the refresh cookie flow. On failure the
-    // session is really gone — send the user to the sign-in page.
+    // Không có token trong bộ nhớ: thử flow refresh qua cookie. Nếu thất bại thì
+    // session thực sự đã hết — chuyển user về trang đăng nhập.
     if (!accessToken) {
       try {
         await refresh()
@@ -21,7 +21,7 @@ export const useAuthInit = () => {
       }
     }
 
-    // Token present but profile not loaded yet (e.g. after refresh).
+    // Có token nhưng chưa load profile (vd. sau khi refresh).
     if (authStore.getState().accessToken && !authStore.getState().user) {
       try {
         await fetchMe()
@@ -32,11 +32,11 @@ export const useAuthInit = () => {
   }, [accessToken, refresh, fetchMe, router])
 
   useEffect(() => {
-    // Public routes manage their own access.
+    // Route public tự quản lý quyền truy cập.
     if (pathname === '/signin' || pathname === '/signup') return
 
-    // After an explicit signOut the refresh cookie is gone — don't call
-    // refresh() again, just let the redirect to /signin happen.
+    // Sau khi signOut chủ động, cookie refresh đã mất — không gọi
+    // refresh() nữa, chỉ cần để redirect về /signin diễn ra.
     if (signedOut) {
       router.push('/signin')
       return

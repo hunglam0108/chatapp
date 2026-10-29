@@ -3,9 +3,9 @@
 import dynamic from "next/dynamic";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 
-// The dashboard UI is driven entirely by client-only state (zustand stores +
-// socket). Server-rendering it produced HTML that could never match the first
-// client render, so it is loaded with ssr:false and hydrated client-side.
+// UI dashboard hoàn toàn dựa vào state chỉ có ở client (zustand store +
+// socket). Render phía server tạo ra HTML không bao giờ khớp với lần render
+// đầu ở client, nên được load với ssr:false và hydrate phía client.
 const DashboardShell = dynamic(
   () =>
     import("@/components/features/mainChat/dashboard-shell").then(

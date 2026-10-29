@@ -5,8 +5,10 @@ import { createPortal } from "react-dom";
 import { PaletteIcon } from "lucide-react";
 import { Mascot } from "page-mascot";
 import { cn } from "@/lib/utils";
+import { useSidebar } from "@/components/ui/sidebar";
+import { chatbotStore } from "@/store/chatbotStore";
 
-/** Mascot characters whose sprite sheets live in /public/mascots. */
+/** Các nhân vật mascot có sprite sheet nằm trong /public/mascots. */
 const MASCOTS = [
   { id: "cat", label: "Cat" },
   { id: "fox", label: "Fox" },
@@ -31,26 +33,36 @@ function loadMascot(): string {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved && MASCOTS.some((m) => m.id === saved)) return saved;
   } catch {
-    // localStorage unavailable (private mode) — fall back to the default.
+    // localStorage không dùng được (private mode) — dùng giá trị mặc định.
   }
   return "cat";
 }
 
 /**
- * Sidebar mascot (follows the cursor, reacts to clicks) with a small palette
- * button that appears on hover. Clicking it opens a picker so the user can
- * swap characters; the choice is persisted in localStorage.
+ * Mascot ở sidebar (đi theo con trỏ, phản ứng khi click) kèm nút palette nhỏ
+ * hiện khi hover. Click vào sẽ mở picker để user
+ * đổi nhân vật; lựa chọn được lưu trong localStorage.
  */
 export function MascotWidget() {
-  const [mascotId, setMascotId] = useState<string>("cat");
+  const mascotId = chatbotStore((s) => s.mascotId);
+  const setMascotId = chatbotStore((s) => s.setMascotId);
+  const chatOpen = chatbotStore((s) => s.open);
+  const setChatOpen = chatbotStore((s) => s.setOpen);
+  const { isMobile, setOpenMobile } = useSidebar();
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState({ top: 60, left: 16 });
 
-  // Hydrate the saved choice after mount (localStorage isn't available during SSR).
+  // Lấy lựa chọn đã lưu sau khi mount (localStorage không có khi SSR).
   useEffect(() => {
     setMascotId(loadMascot());
-  }, []);
+  }, [setMascotId]);
+
+  const openChatbot = () => {
+    setChatOpen(true);
+    // Trên mobile sidebar là sheet sẽ che mất chatbot.
+    if (isMobile) setOpenMobile(false);
+  };
 
   const togglePicker = () => {
     if (!open) {
@@ -70,7 +82,7 @@ export function MascotWidget() {
     try {
       window.localStorage.setItem(STORAGE_KEY, id);
     } catch {
-      // Best effort — the picker still applies for this session.
+      // Best effort — lựa chọn vẫn áp dụng cho phiên hiện tại.
     }
     setOpen(false);
   };
@@ -78,26 +90,34 @@ export function MascotWidget() {
   return (
     <div
       ref={anchorRef}
+      data-mascot
       className="relative shrink-0 group/mascot group-data-[collapsible=icon]:mx-auto"
     >
-      <Mascot
-        directions={`/mascots/${mascotId}-directions.webp`}
-        reactions={`/mascots/${mascotId}-reactions.webp`}
-        size={40}
-        label={`${mascotId} mascot`}
-      />
+      {/* Mascot tự render <button>; sự kiện click nổi bọt lên đây để mở chatbot.
+          Khi chatbot đang mở, mascot nằm trong header của nó nên ở đây chỉ giữ chỗ. */}
+      <div onClick={openChatbot} className={cn(chatOpen && "invisible")}>
+        <Mascot
+          directions={`/mascots/${mascotId}-directions.webp`}
+          reactions={`/mascots/${mascotId}-reactions.webp`}
+          size={40}
+          label={`${mascotId} mascot`}
+        />
+      </div>
       <button
         type="button"
         aria-label="Choose mascot"
         title="Choose mascot"
         onClick={togglePicker}
         className={cn(
-          "absolute -right-1.5 -bottom-1 z-10 flex size-4 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-sm transition-opacity",
+          "absolute z-10 flex items-center justify-center rounded-full border bg-background text-muted-foreground shadow-sm transition-opacity",
           "hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-          "opacity-0 group-hover/mascot:opacity-100"
+          // Khi mascot đã nhảy vào popup: nút nằm giữa chỗ trống và luôn hiện.
+          chatOpen
+            ? "top-1/2 left-1/2 size-6 -translate-x-1/2 -translate-y-1/2"
+            : "-right-1.5 -bottom-1 size-4 opacity-0 group-hover/mascot:opacity-100"
         )}
       >
-        <PaletteIcon className="size-2.5" />
+        <PaletteIcon className={chatOpen ? "size-3.5" : "size-2.5"} />
       </button>
 
       {open && typeof document !== "undefined"
@@ -135,7 +155,7 @@ export function MascotWidget() {
                         className="size-8 rounded bg-muted bg-no-repeat"
                         style={{
                           backgroundImage: `url(/mascots/${m.id}-directions.webp)`,
-                          // The sheet is a 3x3 grid — show its first frame.
+                          // Sheet là lưới 3x3 — hiển thị frame đầu tiên.
                           backgroundSize: "300% 300%",
                           backgroundPosition: "0 0",
                         }}

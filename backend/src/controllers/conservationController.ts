@@ -1,14 +1,16 @@
-import Conversation from "../models/Conversation.ts";
+import Conversation, { CHAT_THEME_IDS } from "../models/Conversation.ts";
 import Message from "../models/Message.ts";
 import { getIo } from "../socket/index.ts";
+import { isValidEmoji } from "../utils/emojiHelper.ts";
+import { deleteCloudinaryFiles } from "../utils/cloudinary.ts";
 
 /**
- * Shape a conversation doc for the client: populated active participants,
- * formerMembers (people who left) and a plain-object unreadCounts.
+ * Định dạng conversation doc cho client: participants đang hoạt động đã populate,
+ * formerMembers (những người đã rời) và unreadCounts dạng plain object.
  *
- * When `viewerId` is given and that viewer has left the group, the result is
- * frozen at the moment they left: messages sent afterwards (lastMessage) are
- * hidden so a leaver can keep their old history without peeking at new chat.
+ * Khi có `viewerId` và người xem đó đã rời nhóm, kết quả bị
+ * đóng băng tại thời điểm họ rời: tin nhắn gửi sau đó (lastMessage) bị
+ * ẩn để người rời vẫn giữ lịch sử cũ mà không xem được tin nhắn mới.
  */
 const serializeConversation = (convo: any, viewerId?: string) => {
   const participants = (convo.participants || []).map((p: any) => ({
@@ -72,7 +74,7 @@ export const createConversation = async (req: any, res: any) => {
     ) {
       return res
         .status(400)
-        .json({ message: "Loại cuộc trò chuyện và danh sách thành viên là bắt buộc" });
+        .json({ message: "Conversation type and member list are required" });
     }
 
     let conversation;
@@ -103,12 +105,12 @@ export const createConversation = async (req: any, res: any) => {
       let groupPayload: { name: string; createdBy: typeof userId };
 
       if (name && name.trim()) {
-        // Custom name supplied — use it directly.
+        // Có tên tùy chỉnh — dùng trực tiếp.
         groupPayload = { name: name.trim(), createdBy: userId };
       } else {
-        // No name supplied. Build the doc without a group.name yet; after save we
-        // populate the creator's displayName from the participants array and set
-        // the default "Group chat of {creator} #{shortId}".
+        // Không có tên. Tạo doc chưa có group.name; sau khi save sẽ
+        // lấy displayName của người tạo từ mảng participants và đặt
+        // tên mặc định "Group chat of {creator} #{shortId}".
         groupPayload = { name: "", createdBy: userId };
       }
 
@@ -123,11 +125,11 @@ export const createConversation = async (req: any, res: any) => {
     }
 
     if (!conversation) {
-      return res.status(400).json({ message: "Conversation type không hợp lệ" });
+      return res.status(400).json({ message: "Invalid conversation type" });
     }
 
-    // Populate the conversation so the response carries displayName/avatarUrl for
-    // participants, formerMembers and the last-message sender.
+    // Populate conversation để response có displayName/avatarUrl cho
+    // participants, formerMembers và người gửi tin nhắn cuối.
     await conversation.populate([
       { path: "participants.userId", select: "displayName avatarUrl" },
       {
@@ -176,16 +178,16 @@ export const createConversation = async (req: any, res: any) => {
 
     return res.status(201).json({ conversation: formatted });
   } catch (error) {
-    console.error("Lỗi khi tạo conversation", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error creating conversation", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
 export const getConversations = async (req: any, res: any) => {
   try {
     const userId = req.user._id;
-    // Active members see the live chat; members who left keep the conversation
-    // in their list so they can still open their old history.
+    // Thành viên đang hoạt động thấy chat trực tiếp; thành viên đã rời vẫn giữ conversation
+    // trong danh sách để còn mở được lịch sử cũ.
     const conversations = await Conversation.find({
       $or: [{ "participants.userId": userId }, { "formerMembers.userId": userId }],
     })
@@ -213,8 +215,8 @@ export const getConversations = async (req: any, res: any) => {
 
     return res.status(200).json({ conversations: formatted });
   } catch (error) {
-    console.error("Lỗi xảy ra khi lấy conversations", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error fetching conversations", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -227,7 +229,7 @@ export const getMessages = async (req:any, res:any) => {
     const conversation = await Conversation.findById(conversationId).lean();
 
     if (!conversation) {
-      return res.status(404).json({ message: "Conversation không tồn tại" });
+      return res.status(404).json({ message: "Conversation not found" });
     }
 
     const isMember = (conversation.participants || []).some(
@@ -239,7 +241,7 @@ export const getMessages = async (req:any, res:any) => {
 
     if (!isMember && !myLeave) {
       return res.status(403).json({
-        message: "Bạn không có quyền xem cuộc trò chuyện này",
+        message: "You do not have permission to view this conversation",
       });
     }
 
@@ -249,8 +251,8 @@ export const getMessages = async (req:any, res:any) => {
       query.createdAt = { $lt: new Date(cursor) };
     }
 
-    // A member who left only sees history up to the moment they left —
-    // messages sent after that stay invisible to them.
+    // Thành viên đã rời chỉ thấy lịch sử tới thời điểm rời —
+    // tin nhắn gửi sau đó bị ẩn với họ.
     if (!isMember && myLeave) {
       query.createdAt = { ...(query.createdAt ?? {}), $lte: myLeave.leftAt };
     }
@@ -274,8 +276,8 @@ export const getMessages = async (req:any, res:any) => {
       nextCursor,
     });
   } catch (error) {
-    console.error("Lỗi xảy ra khi lấy messages", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error fetching messages", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -288,7 +290,7 @@ export const getUserConversationsForSocketIO = async (userId:string) => {
 
     return conversations.map((c) => c._id.toString());
   } catch (error) {
-    console.error("Lỗi khi fetch conversations: ", error);
+    console.error("Error fetching conversations: ", error);
     return [];
   }
 };
@@ -301,17 +303,17 @@ export const markAsSeen = async (req:any, res:any) => {
     const conversation = await Conversation.findById(conversationId).lean();
 
     if (!conversation) {
-      return res.status(404).json({ message: "Conversation không tồn tại" });
+      return res.status(404).json({ message: "Conversation not found" });
     }
 
     const last = conversation.lastMessage;
 
     if (!last) {
-      return res.status(200).json({ message: "Không có tin nhắn để mark as seen" });
+      return res.status(200).json({ message: "No messages to mark as seen" });
     }
 
     if (last.senderId?.toString() === userId) {
-      return res.status(200).json({ message: "Sender không cần mark as seen" });
+      return res.status(200).json({ message: "Sender does not need to mark as seen" });
     }
 
     const updated = await Conversation.findByIdAndUpdate(
@@ -331,6 +333,7 @@ export const markAsSeen = async (req:any, res:any) => {
         _id: updated?.lastMessage?._id,
         content: updated?.lastMessage?.content,
         createdAt: updated?.lastMessage?.createdAt,
+        recalled: updated?.lastMessage?.recalled,
         sender: {
           _id: updated?.lastMessage?.senderId,
         },
@@ -343,15 +346,15 @@ export const markAsSeen = async (req:any, res:any) => {
       myUnreadCount: updated?.unreadCounts.get(userId) || 0,
     });
   } catch (error) {
-    console.error("Lỗi khi mark as seen", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error marking as seen", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
 /**
- * Leave a group chat. The leaver is moved out of `participants` into
- * `formerMembers` (with leftAt) so they keep reading history up to that point,
- * but no longer receive new messages from the group.
+ * Rời group chat. Người rời được chuyển từ `participants` sang
+ * `formerMembers` (kèm leftAt) để vẫn đọc được lịch sử tới thời điểm đó,
+ * nhưng không còn nhận tin nhắn mới từ nhóm.
  */
 export const leaveConversation = async (req: any, res: any) => {
   try {
@@ -361,11 +364,11 @@ export const leaveConversation = async (req: any, res: any) => {
     const conversation = await Conversation.findById(conversationId);
 
     if (!conversation) {
-      return res.status(404).json({ message: "Conversation không tồn tại" });
+      return res.status(404).json({ message: "Conversation not found" });
     }
 
     if (conversation.type !== "group") {
-      return res.status(400).json({ message: "Chỉ có thể rời khỏi nhóm chat" });
+      return res.status(400).json({ message: "Only group chats can be left" });
     }
 
     const isMember = (conversation.participants || []).some(
@@ -373,28 +376,31 @@ export const leaveConversation = async (req: any, res: any) => {
     );
 
     if (!isMember) {
-      return res.status(400).json({ message: "Bạn không ở trong group này." });
+      return res.status(400).json({ message: "You are not a member of this group." });
     }
 
     const wasCreator =
       conversation.group?.createdBy?.toString() === userId.toString();
 
-    conversation.participants = conversation.participants.filter(
-      (p: any) => p.userId.toString() !== userId.toString()
+    conversation.set(
+      "participants",
+      conversation.participants.filter(
+        (p: any) => p.userId.toString() !== userId.toString()
+      )
     );
     conversation.formerMembers = conversation.formerMembers || [];
     conversation.formerMembers.push({ userId, leftAt: new Date() });
 
-    // If the creator leaves, the earliest-joined remaining member takes over
-    // as owner (gains the right to delete the group). If nobody is left, the
-    // creator keeps ownership so they can still delete the orphaned group.
+    // Nếu người tạo rời nhóm, thành viên còn lại tham gia sớm nhất sẽ
+    // làm owner (có quyền xóa nhóm). Nếu không còn ai,
+    // người tạo giữ quyền owner để vẫn xóa được nhóm bị bỏ trống.
     if (wasCreator && conversation.participants.length > 0) {
       const [nextOwner] = [...conversation.participants].sort(
         (a: any, b: any) =>
           new Date(a.joinAt ?? 0).getTime() - new Date(b.joinAt ?? 0).getTime()
       );
 
-      if (nextOwner) {
+      if (nextOwner && conversation.group) {
         conversation.group.createdBy = nextOwner.userId;
       }
     }
@@ -411,36 +417,36 @@ export const leaveConversation = async (req: any, res: any) => {
       { path: "lastMessage.senderId", select: "displayName avatarUrl" },
     ]);
 
-    // Members keep the live view; the leaver's view is frozen at leftAt.
+    // Thành viên giữ view trực tiếp; view của người rời bị đóng băng tại leftAt.
     const memberView = serializeConversation(conversation);
     const leaverView = serializeConversation(conversation, userId);
 
-    // Everyone still in the room (including this leaver's open sockets).
+    // Mọi người còn trong room (kể cả các socket đang mở của người rời).
     getIo().to(conversationId).emit("group-member-left", {
       conversationId,
       userId,
       conversation: memberView,
     });
-    // The leaver's other devices listen on their personal room.
+    // Các thiết bị khác của người rời lắng nghe trên room cá nhân.
     getIo().to(userId.toString()).emit("group-left", {
       conversationId,
       conversation: leaverView,
     });
 
     return res.status(200).json({
-      message: "Bạn đã rời khỏi nhóm",
+      message: "You left the group",
       conversation: leaverView,
     });
   } catch (error) {
-    console.error("Lỗi khi rời khỏi nhóm", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error leaving group", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
 /**
- * Delete a group chat. Only the user who created the group can delete it.
- * Removes the conversation and all of its messages, then tells every member
- * (and former member) so their clients drop the conversation.
+ * Xóa group chat. Chỉ người tạo nhóm mới được xóa.
+ * Xóa conversation và toàn bộ tin nhắn, rồi thông báo cho mọi thành viên
+ * (và thành viên cũ) để client của họ bỏ conversation.
  */
 export const deleteConversation = async (req: any, res: any) => {
   try {
@@ -450,19 +456,24 @@ export const deleteConversation = async (req: any, res: any) => {
     const conversation = await Conversation.findById(conversationId);
 
     if (!conversation) {
-      return res.status(404).json({ message: "Conversation không tồn tại" });
+      return res.status(404).json({ message: "Conversation not found" });
     }
 
     if (conversation.type !== "group") {
-      return res.status(400).json({ message: "Chỉ có thể xóa nhóm chat" });
+      return res.status(400).json({ message: "Only group chats can be deleted" });
     }
 
     if (conversation.group?.createdBy?.toString() !== userId.toString()) {
       return res
         .status(403)
-        .json({ message: "Chỉ người tạo nhóm mới có thể xóa nhóm" });
+        .json({ message: "Only the group creator can delete the group" });
     }
 
+    const files = await Message.find(
+      { conversationId: conversation._id },
+      { imgUrl: 1, audioUrl: 1, fileUrl: 1 }
+    ).lean();
+    await deleteCloudinaryFiles(files.flatMap((m) => [m.imgUrl, m.audioUrl, m.fileUrl]));
     await Message.deleteMany({ conversationId: conversation._id });
     await Conversation.findByIdAndDelete(conversation._id);
 
@@ -471,9 +482,60 @@ export const deleteConversation = async (req: any, res: any) => {
       getIo().to(fm.userId.toString()).emit("group-deleted", { conversationId });
     });
 
-    return res.status(200).json({ message: "Nhóm đã được xóa" });
+    return res.status(200).json({ message: "Group deleted" });
   } catch (error) {
-    console.error("Lỗi khi xóa nhóm", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error deleting group", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+/**
+ * PATCH /api/conversations/:conversationId/settings { theme?, quickEmoji? }
+ * Theme chat + quick emoji dùng chung cho mọi thành viên, giống Messenger.
+ */
+export const updateConversationSettings = async (req: any, res: any) => {
+  try {
+    const { conversationId } = req.params;
+    const { theme, quickEmoji } = req.body ?? {};
+    const userId = req.user._id.toString();
+
+    if (theme === undefined && quickEmoji === undefined) {
+      return res.status(400).json({ message: "No changes provided" });
+    }
+    if (theme !== undefined && !CHAT_THEME_IDS.includes(theme)) {
+      return res.status(400).json({ message: "Invalid theme" });
+    }
+    if (quickEmoji !== undefined && !isValidEmoji(quickEmoji)) {
+      return res.status(400).json({ message: "Invalid emoji" });
+    }
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    const isMember = (conversation.participants || []).some(
+      (p: any) => p.userId.toString() === userId
+    );
+    if (!isMember) {
+      return res.status(403).json({ message: "You are not in this conversation" });
+    }
+
+    if (theme !== undefined) conversation.theme = theme;
+    if (quickEmoji !== undefined) conversation.quickEmoji = quickEmoji;
+    await conversation.save();
+
+    const payload = {
+      conversationId,
+      theme: conversation.theme,
+      quickEmoji: conversation.quickEmoji,
+      updatedBy: userId,
+    };
+    getIo().to(conversationId).emit("conversation-settings-updated", payload);
+
+    return res.status(200).json(payload);
+  } catch (error) {
+    console.error("Error updating conversation settings", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -11,6 +11,10 @@ export const updateConversationAfterCreateMessage = (
       content: message.content,
       senderId,
       createdAt: message.createdAt,
+      // Gợi ý preview cho các dòng sidebar mà không cần fetch toàn bộ tin nhắn.
+      imgUrl: message.imgUrl ?? null,
+      audioUrl: message.audioUrl ?? null,
+      fileUrl: message.fileUrl ?? null,
     },
   });
 

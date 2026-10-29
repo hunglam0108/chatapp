@@ -12,15 +12,15 @@ interface ConfirmDialogProps {
   title: string
   description: string
   confirmLabel: string
-  /** Renders the confirm button in the destructive style. */
+  /** Hiển thị nút xác nhận theo style destructive. */
   destructive?: boolean
   submitting?: boolean
   onConfirm: () => void
 }
 
 /**
- * Minimal confirmation modal (portal-based, same pattern as
- * CreateGroupDialog) used for destructive group actions like leave/delete.
+ * Modal xác nhận tối giản (dùng portal, cùng pattern với
+ * CreateGroupDialog) cho các action nguy hiểm với nhóm như rời/xóa.
  */
 export function ConfirmDialog({
   open,

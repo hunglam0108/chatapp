@@ -26,8 +26,8 @@ interface CreateGroupDialogProps {
 }
 
 /**
- * Modal for creating a group chat: enter a name, pick friends from the list,
- * then Create. Rendered through a portal so it escapes the sidebar overflow.
+ * Modal tạo group chat: nhập tên, chọn bạn bè từ danh sách,
+ * rồi bấm Create. Render qua portal để thoát khỏi overflow của sidebar.
  */
 export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps) {
   const friends = friendStore((s) => s.friends)
@@ -69,10 +69,10 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
     setSubmitting(true)
     setError(null)
     try {
-      // Creator is added automatically by the backend. If a name was provided,
-      // send it so the group keeps a custom name; otherwise the backend picks a
-      // default "Group chat of {creator} #{shortId}" and the client reads it
-      // back after creation.
+      // Backend tự thêm người tạo. Nếu có nhập tên,
+      // gửi lên để nhóm giữ tên tùy chỉnh; nếu không backend sẽ đặt
+      // tên mặc định "Group chat of {creator} #{shortId}" và client đọc lại
+      // sau khi tạo.
       await chatStore.getState().createConversation(
         "group",
         name.trim() || "",

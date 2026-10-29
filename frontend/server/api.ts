@@ -39,7 +39,7 @@ export class ApiClient {
       withCredentials: true,
     });
 
-    // Request interceptor
+    // Interceptor cho request
     this.instance.interceptors.request.use((config) => {
       const token = authStore.getState().accessToken;
 
@@ -50,7 +50,7 @@ export class ApiClient {
       return config;
     });
 
-    // Response interceptor
+    // Interceptor cho response
     this.instance.interceptors.response.use(
       (response) => response,
 
@@ -70,8 +70,7 @@ export class ApiClient {
           originalRequest._retry = true;
 
           try {
-            this.refreshAccessToken()
-            const newAccessToken = await this.refreshPromise;
+            const newAccessToken = await this.refreshAccessToken();
 
             // Cập nhật token cho request cần retry
             originalRequest.headers.Authorization =
@@ -107,7 +106,9 @@ private async refreshAccessToken(): Promise<string> {
     this.refreshPromise = authApi.refresh()
   }
 
-  return (await this.refreshPromise).accessToken;
+  const token = (await this.refreshPromise).accessToken;
+  authStore.setState({accessToken: token})
+  return token;
 }
 
   public setHeader(key: string, value: string): void {

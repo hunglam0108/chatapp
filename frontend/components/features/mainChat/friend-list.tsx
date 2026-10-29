@@ -17,9 +17,9 @@ function initials(name: string) {
 }
 
 /**
- * Friends section. Shows ALL friends — including ones you have no
- * conversation with yet — with a "Chat" action that creates/opens the
- * direct conversation with that friend.
+ * Mục bạn bè. Hiển thị TẤT CẢ bạn bè — kể cả những người chưa có
+ * cuộc trò chuyện — kèm action "Chat" để tạo/mở
+ * cuộc trò chuyện 1-1 với người đó.
  */
 export function FriendList() {
   const friends = friendStore((s) => s.friends)
@@ -27,7 +27,7 @@ export function FriendList() {
   const onlineUsers = socketStore((s) => s.onlineUsers)
 
   const startChat = async (friendId: string) => {
-    // If a direct conversation already exists with this friend, open it.
+    // Nếu đã có cuộc trò chuyện 1-1 với người này thì mở nó.
     const existing = conversations.find(
       (c) =>
         c.type === "direct" &&
@@ -39,7 +39,7 @@ export function FriendList() {
       return
     }
 
-    // Otherwise create one (backend reuses an existing direct convo if any).
+    // Nếu chưa thì tạo mới (backend dùng lại convo 1-1 sẵn có nếu có).
     await chatStore.getState().createConversation("direct", "", [friendId])
     const active = chatStore.getState().activeConversationId
     if (active) {

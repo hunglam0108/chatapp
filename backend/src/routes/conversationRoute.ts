@@ -6,27 +6,31 @@ import {
   markAsSeen,
   leaveConversation,
   deleteConversation,
+  updateConversationSettings,
 } from "../controllers/conservationController.ts";
 import { checkFriendship } from "../middlewares/friendMiddleware.ts";
 
 const router = express.Router();
 
-// List my conversations
+// Danh sách cuộc trò chuyện của tôi
 router.get("/", getConversations);
 
-// Fetch messages of one conversation (cursor pagination)
+// Lấy tin nhắn của một cuộc trò chuyện (phân trang theo cursor)
 router.get("/:conversationId/messages", getMessages);
 
-// Create direct/group conversation (only friends can be members)
+// Tạo cuộc trò chuyện direct/group (chỉ bạn bè mới được làm thành viên)
 router.post("/", checkFriendship, createConversation);
 
-// Mark conversation as seen
+// Đánh dấu cuộc trò chuyện đã xem
 router.patch("/:conversationId/seen", markAsSeen);
 
-// Leave a group chat (history up to leaving stays visible)
+// Rời group chat (lịch sử tới lúc rời vẫn xem được)
 router.post("/:conversationId/leave", leaveConversation);
 
-// Delete a group chat (creator only)
+// Đổi theme chat / quick emoji dùng chung
+router.patch("/:conversationId/settings", updateConversationSettings);
+
+// Xóa group chat (chỉ người tạo)
 router.delete("/:conversationId", deleteConversation);
 
 export default router;

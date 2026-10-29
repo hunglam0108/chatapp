@@ -37,7 +37,7 @@ export function LoginForm({
     event.preventDefault()
     if (submitting) return
 
-    // Per-field validation — each message renders in red via FieldError.
+    // Validate từng field — mỗi message hiển thị màu đỏ qua FieldError.
     const nextErrors: LoginErrors = {}
     if (!username.trim()) nextErrors.username = 'Please enter your username'
     if (!password) nextErrors.password = 'Please enter your password'
@@ -47,12 +47,12 @@ export function LoginForm({
 
     setSubmitting(true)
     try {
-      // signIn throws on failure (wrong credentials, network error...);
-      // the catch below keeps the user on this page so they can retry.
+      // signIn throw khi thất bại (sai thông tin đăng nhập, lỗi mạng...);
+      // catch bên dưới giữ user ở trang này để thử lại.
       await signIn(username, password)
       router.push('/')
     } catch (err) {
-      // Show the failure inline (already toasted by authStore as well).
+      // Hiển thị lỗi inline (authStore cũng đã toast).
       setServerError(
         err instanceof Error && err.message ? err.message : 'Login failed'
       )
@@ -62,7 +62,7 @@ export function LoginForm({
   }
 
   return (
-    <div className="bg-gradient-to-br from-[#4338ca] to-[#8b5cf6] rounded-lg p-6">
+    <div className="rounded-2xl bg-card p-6 text-card-foreground shadow-xl">
     <form
       className={cn("flex flex-col gap-6", className)}
       onSubmit={handleLogin}
@@ -112,7 +112,7 @@ export function LoginForm({
               if (serverError) setServerError(null)
             }}
           />
-          {/* Required error takes precedence; otherwise show the API error. */}
+          {/* Lỗi required được ưu tiên; nếu không thì hiển thị lỗi từ API. */}
           <FieldError>{errors.password ?? serverError}</FieldError>
         </Field>
         <Field>

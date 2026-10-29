@@ -4,11 +4,67 @@ import { authStore } from "./authStore";
 import { chatStore } from "./chatStore";
 import { friendStore } from "./friendStore";
 import { SocketState } from "@/types/SocketType";
-import type { Conversation, Message, SeenUser } from "@/types/ConversationType";
+import type { Conversation, Message, Reaction, SeenUser } from "@/types/ConversationType";
 import type { Friend } from "@/types/UserType";
 import { toast } from "sonner";
 
 const baseURL = process.env.NEXT_PUBLIC_SOCKET_URL;
+
+// Event "new-message"/"read-message" có thể tới dồn dập: gom lại trong một
+// khoảng ngắn rồi cập nhật store một lần, thay vì re-render + gọi API mỗi event.
+const FLUSH_DELAY_MS = 50;
+
+type ConversationPatch = { _id: string } & Record<string, unknown>;
+
+type ReactionUpdate = { conversationId: string; messageId: string; reactions: Reaction[] };
+
+let pendingMessages: Message[] = [];
+let pendingConversations = new Map<string, ConversationPatch>();
+let pendingReactions = new Map<string, ReactionUpdate>();
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+const flushPending = () => {
+  flushTimer = null;
+  const messages = pendingMessages;
+  const conversations = pendingConversations;
+  const reactions = pendingReactions;
+  pendingMessages = [];
+  pendingConversations = new Map();
+  pendingReactions = new Map();
+
+  const chat = chatStore.getState();
+  if (messages.length > 0) chat.addMessages(messages);
+  // Chạy sau addMessages để reaction trên tin nhắn vừa tới vẫn được áp dụng.
+  if (reactions.size > 0) chat.applyReactions([...reactions.values()]);
+  conversations.forEach((patch) => chat.updateConversation(patch));
+
+  // Gọi sau updateConversation để markAsSeen đọc được unreadCounts mới nhất.
+  const { activeConversationId } = chatStore.getState();
+  if (messages.some((m) => m.conversationId === activeConversationId)) {
+    chat.markAsSeen();
+  }
+};
+
+const scheduleFlush = () => {
+  flushTimer ??= setTimeout(flushPending, FLUSH_DELAY_MS);
+};
+
+const clearPending = () => {
+  if (flushTimer) clearTimeout(flushTimer);
+  flushTimer = null;
+  pendingMessages = [];
+  pendingConversations = new Map();
+  pendingReactions = new Map();
+};
+
+const queueConversationPatch = (patch: ConversationPatch) => {
+  // Patch tới sau ghi đè field của patch trước cho cùng một convo.
+  pendingConversations.set(patch._id, {
+    ...pendingConversations.get(patch._id),
+    ...patch,
+  });
+  scheduleFlush();
+};
 
 export const socketStore = create<SocketState>((set, get) => ({
   socket: null,
@@ -31,19 +87,19 @@ export const socketStore = create<SocketState>((set, get) => ({
     set({ socket });
 
     socket.on("connect", () => {
-      console.log("Đã kết nối với socket");
+      console.log("Connected to socket");
     });
 
     socket.on("disconnect", (reason) => {
-      console.log("Socket ngắt kết nối:", reason);
+      console.log("Socket disconnected:", reason);
     });
 
-    // online users — dùng cho badge trạng thái on/off trong sidebar & chat header
+    // user online — dùng cho badge trạng thái on/off trong sidebar & chat header
     socket.on("online-users", (userIds: string[]) => {
       set({ onlineUsers: userIds });
     });
 
-    // new message
+    // tin nhắn mới
     socket.on(
       "new-message",
       ({
@@ -64,7 +120,7 @@ export const socketStore = create<SocketState>((set, get) => ({
         };
         unreadCounts: Record<string, number>;
       }) => {
-        chatStore.getState().addMessage(message);
+        pendingMessages.push(message);
 
         const lastMessage = {
           _id: conversation.lastMessage._id,
@@ -77,23 +133,15 @@ export const socketStore = create<SocketState>((set, get) => ({
           },
         };
 
-        const updatedConversation = {
+        queueConversationPatch({
           ...conversation,
           lastMessage,
           unreadCounts,
-        };
-
-        if (
-          chatStore.getState().activeConversationId === message.conversationId
-        ) {
-          chatStore.getState().markAsSeen();
-        }
-
-        chatStore.getState().updateConversation(updatedConversation);
+        });
       }
     );
 
-    // read message
+    // tin nhắn đã đọc
     socket.on(
       "read-message",
       ({
@@ -121,44 +169,90 @@ export const socketStore = create<SocketState>((set, get) => ({
           seenBy: conversation.seenBy,
         };
 
-        chatStore.getState().updateConversation(updated);
+        queueConversationPatch(updated);
       }
     );
 
-    // new group chat
+    // Theme / quick emoji của conversation đã đổi (bởi bất kỳ thành viên nào).
+    socket.on(
+      "conversation-settings-updated",
+      ({
+        conversationId,
+        theme,
+        quickEmoji,
+      }: {
+        conversationId: string;
+        theme: string;
+        quickEmoji: string;
+      }) => {
+        queueConversationPatch({ _id: conversationId, theme, quickEmoji });
+      }
+    );
+
+    // Reaction của tin nhắn đã đổi — chỉ cần danh sách mới nhất của mỗi tin nhắn.
+    socket.on("message-reaction", (update: ReactionUpdate) => {
+      pendingReactions.set(update.messageId, update);
+      scheduleFlush();
+    });
+
+    // Một tin nhắn đã được sửa hoặc thu hồi.
+    socket.on(
+      "message-updated",
+      ({
+        message,
+        lastMessage,
+      }: {
+        message: Message;
+        lastMessage?: { content: string | null; recalled: boolean };
+      }) => {
+        chatStore.getState().applyMessageUpdate(message);
+        if (!lastMessage) return;
+
+        const current = chatStore
+          .getState()
+          .conversations.find((c) => c._id === message.conversationId)?.lastMessage;
+        if (!current) return;
+        queueConversationPatch({
+          _id: message.conversationId,
+          lastMessage: { ...current, content: lastMessage.content, recalled: lastMessage.recalled },
+        });
+      }
+    );
+
+    // group chat mới
     socket.on("new-group", (conversation) => {
       chatStore.getState().addConvo(conversation);
       socket.emit("join-conversation", conversation._id);
     });
 
-    // A group we are in was deleted by its creator — drop it everywhere.
+    // Nhóm mình đang tham gia bị người tạo xóa — bỏ nó ở mọi nơi.
     socket.on("group-deleted", ({ conversationId }: { conversationId: string }) => {
       const existed = chatStore
         .getState()
         .conversations.some((c) => c._id === conversationId);
       chatStore.getState().removeConversation(conversationId);
       if (existed) {
-        toast.info("Nhóm chat đã bị xóa");
+        toast.info("The group chat was deleted");
       }
     });
 
-    // Another member left a group we are in — refresh its member list.
+    // Một thành viên khác rời nhóm mình đang ở — làm mới danh sách thành viên.
     socket.on(
       "group-member-left",
       ({ userId, conversation }: { userId: string; conversation: Conversation }) => {
         const me = authStore.getState().user?._id;
-        if (userId === me) return; // our own leave arrives via "group-left"
+        if (userId === me) return; // việc mình rời nhóm sẽ tới qua "group-left"
         chatStore.getState().updateConversation(conversation);
       }
     );
 
-    // We (one of our sessions) left a group — freeze the chat at leftAt.
+    // Mình (một trong các session) đã rời nhóm — đóng băng chat tại leftAt.
     socket.on("group-left", ({ conversation }: { conversation: Conversation }) => {
       chatStore.getState().updateConversation(conversation);
-      toast.info("Bạn đã rời khỏi nhóm");
+      toast.info("You left the group");
     });
 
-    // ===== Friend requests (real-time) =====
+    // ===== Lời mời kết bạn (real-time) =====
 
     // Ai đó gửi cho mình lời mời kết bạn
     socket.on("friend-request:receive", (request) => {
@@ -183,6 +277,7 @@ export const socketStore = create<SocketState>((set, get) => ({
     );
   },
   disconnectSocket: () => {
+    clearPending();
     const socket = get().socket;
     if (socket) {
       socket.disconnect();

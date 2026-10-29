@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import {
   Card,
   CardContent,
@@ -47,7 +48,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   }
 
   return (
-    <Card {...props}>
+    <Card {...props} className={cn("w-full rounded-2xl shadow-xl", props.className)}>
       <CardHeader>
         <CardTitle>Create an account</CardTitle>
         <CardDescription>

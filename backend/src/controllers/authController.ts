@@ -86,14 +86,14 @@ export const signOut = async (req: Request, res: Response) => {
 
         if (token) {
             await Session.deleteOne({ refreshToken: token })
-            // Matching attributes ensure the browser actually drops the cookie.
+            // Thuộc tính khớp nhau đảm bảo trình duyệt thực sự xóa cookie.
             res.clearCookie('refreshToken', {
                 httpOnly: true,
                 secure: true,
                 sameSite: 'none',
             })
         }
-        // res.status() alone never sends a response — use sendStatus.
+        // Chỉ res.status() thì không gửi response — dùng sendStatus.
         return res.sendStatus(204);
     }
     catch(err) {

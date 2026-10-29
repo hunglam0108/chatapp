@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PlusIcon } from "lucide-react";
+import { CheckCheckIcon, CheckIcon, PlusIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
 import { UsersIcon } from "lucide-react";
@@ -54,10 +54,20 @@ function ChatRow({
   onSelect: () => void;
 }) {
   const currentUserId = authStore((s) => s.user?._id);
-  const preview = conversation.lastMessage?.content ?? "No messages yet";
+  const preview = conversation.lastMessage
+    ? conversation.lastMessage.recalled
+      ? "Message unsent"
+      : (conversation.lastMessage.content ?? "Sent an attachment")
+    : "No messages yet";
+  const isOwnLast =
+    !!conversation.lastMessage && conversation.lastMessage.sender?._id === currentUserId;
+  // seenBy được populate khi lấy qua REST nhưng chỉ là id thô khi tới từ socket event "read-message".
+  const seenByOthers = (conversation.seenBy ?? []).some(
+    (u) => (typeof u === "string" ? u : u._id) !== currentUserId
+  );
+  const isUnread = unread > 0;
   const previewPrefix =
-    conversation.lastMessage &&
-    conversation.lastMessage.sender?._id === currentUserId
+    isOwnLast
       ? "You: "
       : conversation.type === "group" && conversation.lastMessage
         ? `${conversation.lastMessage.sender?.displayName || "User"}: `
@@ -91,17 +101,33 @@ function ChatRow({
           ) : null}
         </div>
         <div className="grid min-w-0 flex-1 gap-0.5 text-left">
-          <span className="truncate text-sm font-medium">{title}</span>
-          <span className="truncate text-xs text-muted-foreground">
-            {previewPrefix}
-            {preview}
+          <span className={cn("truncate text-sm", isUnread ? "font-semibold" : "font-medium")}>
+            {title}
+          </span>
+          <span
+            className={cn(
+              "flex min-w-0 items-center gap-1 text-xs",
+              isUnread ? "font-semibold text-foreground" : "text-muted-foreground"
+            )}
+          >
+            {isOwnLast ? (
+              seenByOthers ? (
+                <CheckCheckIcon aria-label="Seen" className="size-3.5 shrink-0 text-primary" />
+              ) : (
+                <CheckIcon aria-label="Sent" className="size-3.5 shrink-0" />
+              )
+            ) : null}
+            <span className="truncate">
+              {previewPrefix}
+              {preview}
+            </span>
           </span>
         </div>
         <span className="ml-auto flex shrink-0 flex-col items-end gap-1">
           <span className="text-[10px] text-muted-foreground">
             {timeLabel(conversation.lastMessage?.createdAt ?? conversation.lastMessageAt)}
           </span>
-          {unread > 0 ? (
+          {isUnread ? (
             <span
               className={cn(
                 "flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[9px] font-semibold",
@@ -120,8 +146,8 @@ function ChatRow({
 }
 
 /**
- * Sidebar conversations: a single list of all chats (direct + group),
- * sorted most-recent first.
+ * Danh sách cuộc trò chuyện ở sidebar: một list gồm mọi chat (1-1 + nhóm),
+ * sắp xếp mới nhất lên đầu.
  */
 export function ChatList() {
   const [createOpen, setCreateOpen] = useState(false);

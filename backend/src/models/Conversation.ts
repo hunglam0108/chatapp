@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import { DEFAULT_QUICK_EMOJI } from "../utils/emojiHelper.ts";
+
+// Giữ đồng bộ với frontend/lib/chat-themes.ts.
+export const CHAT_THEME_IDS = ["default", "ocean", "sunset", "forest", "rose", "midnight"];
 
 const participantSchema = new mongoose.Schema({
     userId: {
@@ -30,8 +34,8 @@ const groupSchema = new mongoose.Schema(
   }
 )
 
-// A member who left the group: they can still read history up to `leftAt`,
-// but they no longer receive new messages.
+// Thành viên đã rời nhóm: vẫn đọc được lịch sử tới thời điểm `leftAt`,
+// nhưng không còn nhận tin nhắn mới.
 const formerMemberSchema = new mongoose.Schema(
   {
     userId: {
@@ -64,6 +68,10 @@ const lastMessageSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    recalled: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     _id: false,
@@ -80,12 +88,15 @@ const conversationSchema = new mongoose.Schema({
         type: [participantSchema],
         required: true
     },
+    group: {
+        type: groupSchema
+    },
     formerMembers: {
         type: [formerMemberSchema],
         default: [],
     },
-    // Note: senderId/content belong to the Message collection. The last
-    // message of a conversation is stored in `lastMessage` (with its sender).
+    // Lưu ý: senderId/content thuộc collection Message. Tin nhắn cuối
+    // của cuộc trò chuyện được lưu trong `lastMessage` (kèm người gửi).
     lastMessageAt: {
         type:  Date
     },
@@ -99,6 +110,15 @@ const conversationSchema = new mongoose.Schema({
         }
     ],
     imgUrl: String,
+    theme: {
+        type: String,
+        enum: CHAT_THEME_IDS,
+        default: "default"
+    },
+    quickEmoji: {
+        type: String,
+        default: DEFAULT_QUICK_EMOJI
+    },
     unreadCounts: {
         type: Map,
         of: Number,
@@ -111,7 +131,7 @@ const conversationSchema = new mongoose.Schema({
 conversationSchema.index({ "participants.userId": 1, lastMessageAt: -1 })
 conversationSchema.index({ "formerMembers.userId": 1 })
 
-// Utility for the "Group chat of {creator} #{shortId}" default name.
+// Tiện ích tạo tên mặc định "Group chat of {creator} #{shortId}".
 export const defaultGroupName = (creatorDisplayName: string) =>
   `Group chat of ${creatorDisplayName} #${Math.random().toString(36).slice(2, 7)}`;
 

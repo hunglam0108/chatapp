@@ -48,7 +48,7 @@ function SearchRow({ user }: { user: SearchUser }) {
     setSending(true);
     try {
       if (user.relation === "request_received" && user.requestId) {
-        // The other user already invited us — accept that request instead.
+        // User kia đã mời mình rồi — chấp nhận lời mời đó thay vì gửi mới.
         await friendStore.getState().acceptRequest(user.requestId);
       } else {
         await addFriend(user._id);
@@ -90,9 +90,9 @@ function SearchRow({ user }: { user: SearchUser }) {
 }
 
 /**
- * Sidebar header search: finds friends by keyword (debounced, server-side
- * regex search on username/displayName) and lets you send friend requests
- * directly from the results.
+ * Ô tìm kiếm ở header sidebar: tìm bạn theo từ khóa (có debounce, tìm
+ * bằng regex phía server trên username/displayName) và cho phép gửi lời mời kết bạn
+ * ngay từ kết quả.
  */
 export function SidebarSearch() {
   const searchUsers = useFriends().searchUsers;
@@ -104,7 +104,7 @@ export function SidebarSearch() {
   const [debounced, setDebounced] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounce the input before hitting the search API.
+  // Debounce input trước khi gọi API tìm kiếm.
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => setDebounced(query.trim()), 300);
@@ -113,7 +113,7 @@ export function SidebarSearch() {
     };
   }, [query]);
 
-  // Trigger the search when the debounced value changes.
+  // Gọi tìm kiếm khi giá trị đã debounce thay đổi.
   useEffect(() => {
     if (!debounced) {
       clearSearch();
@@ -131,23 +131,23 @@ export function SidebarSearch() {
     left: number;
   } | null>(null);
 
-  // Anchor the results panel below the search input, but let it be wider
-  // than the sidebar (the sidebar is a fixed 16rem and its content clips
-  // overflow, so the panel has to escape into a portal to grow).
+  // Neo panel kết quả bên dưới ô tìm kiếm, nhưng cho phép rộng hơn
+  // sidebar (sidebar cố định 16rem và nội dung bị cắt khi
+  // tràn, nên panel phải render qua portal để mở rộng).
   useEffect(() => {
     if (!showResults) {
       setPanelPos(null);
       return;
     }
     const rect = anchorRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return; // input hidden (icon mode)
+    if (!rect || rect.width === 0) return; // input bị ẩn (chế độ icon)
     setPanelPos({
       top: rect.bottom + 6,
       left: rect.left,
     });
   }, [showResults]);
 
-  // Keep the panel glued to the input while the window or sidebar resizes.
+  // Giữ panel bám theo input khi window hoặc sidebar đổi kích thước.
   useEffect(() => {
     if (!panelPos) return;
     const onMove = () => {
@@ -162,7 +162,7 @@ export function SidebarSearch() {
     return () => window.removeEventListener("resize", onMove);
   }, [panelPos]);
 
-  // The panel floats over the page now, so dismiss it when clicking away.
+  // Panel nổi trên trang nên đóng nó khi click ra ngoài.
   const panelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!showResults) return;

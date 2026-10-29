@@ -15,6 +15,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@types/multer": "^2.3.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -23,6 +24,7 @@
     "jsonwebtoken": "^9.0.3",
     "mogoose": "^0.0.1-security",
     "mongoose": "^9.8.1",
+    "multer": "^2.4.0",
     "parser": "^0.1.4",
     "socket.io": "^4.8.3"
   },

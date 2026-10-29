@@ -5,13 +5,14 @@ import { chatStore } from "@/store/chatStore";
 import { socketStore } from "@/store/socketStore";
 import { friendStore } from "@/store/friendStore";
 import { authStore } from "@/store/authStore";
+import { emojiStore } from "@/store/emojiStore";
 
 /**
- * Owns the socket connection lifecycle for the signed-in user:
- * - connects the socket once when an access token exists
- * - loads conversations, friends and pending friend requests
- * - re-fetches lists after reconnection (missed events while offline)
- * - disconnects and clears state on sign-out
+ * Quản lý vòng đời kết nối socket cho user đã đăng nhập:
+ * - kết nối socket một lần khi có access token
+ * - load conversations, bạn bè và lời mời kết bạn đang chờ
+ * - fetch lại danh sách sau khi kết nối lại (bù event bị lỡ khi offline)
+ * - ngắt kết nối và xóa state khi đăng xuất
  */
 export function useSocket() {
   const accessToken = authStore((s) => s.accessToken);
@@ -28,6 +29,7 @@ export function useSocket() {
       chatStore.getState().fetchConversations();
       friendStore.getState().getFriends();
       friendStore.getState().getAllFriendRequests();
+      emojiStore.getState().fetchEmojis();
 
       const s = socketStore.getState().socket;
       if (s) {
@@ -36,7 +38,7 @@ export function useSocket() {
           friendStore.getState().getFriends();
           friendStore.getState().getAllFriendRequests();
         };
-        // Re-sync server state after reconnecting (events may have been missed).
+        // Đồng bộ lại state từ server sau khi kết nối lại (có thể đã lỡ event).
         s.on("connect", refetch);
         return () => {
           s.off("connect", refetch);
@@ -45,12 +47,13 @@ export function useSocket() {
     }
   }, [accessToken, user]);
 
-  // Disconnect when the user signs out.
+  // Ngắt kết nối khi user đăng xuất.
   useEffect(() => {
     if (!accessToken) {
       socketStore.getState().disconnectSocket();
       chatStore.getState().reset();
       friendStore.getState().resetFriends();
+      emojiStore.getState().reset();
     }
   }, [accessToken]);
 }

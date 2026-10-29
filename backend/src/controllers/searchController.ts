@@ -8,9 +8,9 @@ const escapeRegex = (input: string) =>
 
 /**
  * GET /api/user/search?query=xxx
- * Finds users by username or displayName (case-insensitive partial match),
- * annotated with the relationship to the current user so the frontend can
- * hide/disable the "add friend" action accordingly.
+ * Tìm user theo username hoặc displayName (khớp một phần, không phân biệt hoa thường),
+ * kèm quan hệ với user hiện tại để frontend có thể
+ * ẩn/vô hiệu hóa nút "add friend" tương ứng.
  */
 export const searchUsers = async (req: any, res: any) => {
   try {
@@ -99,7 +99,7 @@ export const searchUsers = async (req: any, res: any) => {
 
     return res.status(200).json({ users: usersWithRelation });
   } catch (error) {
-    console.error("Lỗi khi tìm kiếm người dùng", error);
-    return res.status(500).json({ message: "Lỗi hệ thống" });
+    console.error("Error searching users", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

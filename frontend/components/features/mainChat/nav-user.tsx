@@ -20,8 +20,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { ChevronsUpDownIcon, LogOutIcon } from "lucide-react"
+import { ChevronsUpDownIcon, LogOutIcon, MoonIcon, SunIcon } from "lucide-react"
 import { authStore } from "@/store/authStore"
+import { themeStore } from "@/store/themeStore"
 import { authApi } from "@/server/auth"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -37,6 +38,8 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
+  const isDark = themeStore((s) => s.isDark)
+  const toggleTheme = themeStore((s) => s.toggleTheme)
   const initials = (user.name || "U")
     .split(" ")
     .filter(Boolean)
@@ -48,7 +51,7 @@ export function NavUser({
     try {
       await authApi.signOut()
     } catch {
-      // Session may already be gone; continue clearing local state.
+      // Session có thể đã hết; tiếp tục xóa state local.
     }
     authStore.getState().signOut()
     toast.success("Signed out")
@@ -99,6 +102,10 @@ export function NavUser({
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={toggleTheme}>
+              {isDark ? <SunIcon /> : <MoonIcon />}
+              {isDark ? "Light mode" : "Dark mode"}
+            </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={handleLogout}>
               <LogOutIcon />
               Log out

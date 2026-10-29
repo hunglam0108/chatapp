@@ -36,14 +36,14 @@ export interface FriendRequest {
   updatedAt: string;
 }
 
-/** Result item of GET /user/search?query=... */
+/** Một kết quả của GET /user/search?query=... */
 export interface SearchUser {
   _id: string;
   username: string;
   displayName: string;
   avatarUrl?: string | null;
-  /** Relationship between the searched user and the current user */
+  /** Quan hệ giữa user được tìm và user hiện tại */
   relation: "self" | "friend" | "request_sent" | "request_received" | "none";
-  /** When relation is request_sent/request_received, id of that pending request */
+  /** Khi relation là request_sent/request_received: id của lời mời đang chờ đó */
   requestId?: string;
 }

@@ -2,6 +2,7 @@
 
 import { AppSidebar } from "@/components/features/mainChat/app-sidebar";
 import { ChatPanel } from "@/components/features/mainChat/chat-panel";
+import { MascotChatbot } from "@/components/features/mainChat/mascot-chatbot";
 import {
   SidebarInset,
   SidebarProvider,
@@ -9,8 +10,8 @@ import {
 import { useSocket } from "@/hooks/use-socket";
 
 /**
- * Client shell for the chat dashboard. Owns the socket lifecycle (connection,
- * real-time sync, presence) via useSocket and lays out sidebar + chat panel.
+ * Client shell cho dashboard chat. Quản lý vòng đời socket (kết nối,
+ * đồng bộ real-time, presence) qua useSocket và bố trí sidebar + chat panel.
  */
 export function DashboardShell() {
   useSocket();
@@ -18,7 +19,8 @@ export function DashboardShell() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="h-svh overflow-hidden">
+      <MascotChatbot />
+      <SidebarInset className="h-svh min-w-0 overflow-hidden md:min-w-80 md:flex-[1_1_40rem]">
         <ChatPanel />
       </SidebarInset>
     </SidebarProvider>
