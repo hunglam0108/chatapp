@@ -23,6 +23,51 @@ const MASCOTS = [
   { id: "mouse", label: "Mouse" },
   { id: "raccoon", label: "Raccoon" },
   { id: "sheep", label: "Sheep" },
+  { id: "bunny", label: "Bunny" },
+  { id: "deer", label: "Deer" },
+  { id: "dino", label: "Dino" },
+  { id: "hedgehog", label: "Hedgehog" },
+  { id: "owl", label: "Owl" },
+  { id: "pug", label: "Pug" },
+  { id: "redpanda", label: "Red panda" },
+  { id: "sloth", label: "Sloth" },
+  { id: "fox-ink", label: "Fox (ink)" },
+  { id: "fox-paper", label: "Fox (paper)" },
+  { id: "fox-pixel", label: "Fox (pixel)" },
+  { id: "fox-riso", label: "Fox (riso)" },
+  { id: "fox-sketch", label: "Fox (sketch)" },
+  { id: "afro", label: "Afro" },
+  { id: "astronaut", label: "Astronaut" },
+  { id: "bald", label: "Bald" },
+  { id: "ballerina", label: "Ballerina" },
+  { id: "beard", label: "Beard" },
+  { id: "builder", label: "Builder" },
+  { id: "cap", label: "Cap" },
+  { id: "chef", label: "Chef" },
+  { id: "glasses", label: "Glasses" },
+  { id: "grandpa", label: "Grandpa" },
+  { id: "granny", label: "Granny" },
+  { id: "hijabi", label: "Hijabi" },
+  { id: "kamran", label: "Kamran" },
+  { id: "knight", label: "Knight" },
+  { id: "nurse", label: "Nurse" },
+  { id: "pirate", label: "Pirate" },
+  { id: "scientist", label: "Scientist" },
+  { id: "scout", label: "Scout" },
+  { id: "sikh", label: "Sikh" },
+  { id: "skater", label: "Skater" },
+  { id: "wizard", label: "Wizard" },
+  { id: "clockwork", label: "Clockwork" },
+  { id: "crt", label: "CRT" },
+  { id: "cube", label: "Cube" },
+  { id: "drone", label: "Drone" },
+  { id: "gearbot", label: "Gearbot" },
+  { id: "lantern", label: "Lantern" },
+  { id: "postbot", label: "Postbot" },
+  { id: "radio", label: "Radio" },
+  { id: "rocket", label: "Rocket" },
+  { id: "toaster", label: "Toaster" },
+  { id: "tv", label: "TV" },
 ] as const;
 
 const STORAGE_KEY = "freebuff.mascot";
@@ -69,7 +114,7 @@ export function MascotWidget() {
       const rect = anchorRef.current?.getBoundingClientRect();
       if (rect) {
         setPosition({
-          top: Math.min(rect.bottom + 6, window.innerHeight - 260),
+          top: Math.min(rect.bottom + 6, window.innerHeight - 310),
           left: Math.min(Math.max(rect.left - 80, 8), window.innerWidth - 240),
         });
       }
@@ -136,7 +181,7 @@ export function MascotWidget() {
                 <p className="px-1.5 pb-1 text-xs font-medium text-muted-foreground">
                   Mascot
                 </p>
-                <div className="grid grid-cols-4 gap-1">
+                <div className="grid max-h-72 grid-cols-4 gap-1 overflow-y-auto">
                   {MASCOTS.map((m) => (
                     <button
                       key={m.id}
@@ -151,15 +196,16 @@ export function MascotWidget() {
                         m.id === mascotId && "bg-primary/10 ring-1 ring-primary"
                       )}
                     >
-                      <span
-                        className="size-8 rounded bg-muted bg-no-repeat"
-                        style={{
-                          backgroundImage: `url(/mascots/${m.id}-directions.webp)`,
-                          // Sheet là lưới 3x3 — hiển thị frame đầu tiên.
-                          backgroundSize: "300% 300%",
-                          backgroundPosition: "0 0",
-                        }}
-                      />
+                      {/* Sheet là lưới 3x3 — hiển thị frame đầu tiên. Dùng <img loading="lazy">
+                          để chỉ tải ảnh của những ô đang hiện trong vùng cuộn. */}
+                      <span className="relative size-8 overflow-hidden rounded bg-muted">
+                        <img
+                          src={`/mascots/${m.id}-directions.webp`}
+                          alt=""
+                          loading="lazy"
+                          className="absolute top-0 left-0 h-[300%] w-[300%] max-w-none"
+                        />
+                      </span>
                       <span className="w-full truncate text-center text-[9px] leading-none text-muted-foreground">
                         {m.label}
                       </span>

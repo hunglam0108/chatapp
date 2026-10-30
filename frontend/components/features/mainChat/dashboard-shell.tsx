@@ -1,6 +1,7 @@
 "use client";
 
 import { AppSidebar } from "@/components/features/mainChat/app-sidebar";
+import { CallWindow } from "@/components/features/mainChat/call-window";
 import { ChatPanel } from "@/components/features/mainChat/chat-panel";
 import { MascotChatbot } from "@/components/features/mainChat/mascot-chatbot";
 import {
@@ -23,6 +24,7 @@ export function DashboardShell() {
       <SidebarInset className="h-svh min-w-0 overflow-hidden md:min-w-80 md:flex-[1_1_40rem]">
         <ChatPanel />
       </SidebarInset>
+      <CallWindow />
     </SidebarProvider>
   );
 }

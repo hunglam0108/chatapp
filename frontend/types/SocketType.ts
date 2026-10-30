@@ -101,6 +101,71 @@ export interface SocketState {
   disconnectSocket: () => void;
 }
 
+// ===== Call 1-1 (WebRTC) — giữ đồng bộ với backend/src/socket/callHandlers.ts =====
+
+export type CallStatus = "idle" | "outgoing" | "incoming" | "connecting" | "active";
+
+export interface CallPeer {
+  _id: string;
+  displayName: string;
+  avatarUrl?: string | null;
+}
+
+export interface CallIncomingPayload {
+  callId: string;
+  conversationId: string;
+  video: boolean;
+  from: CallPeer;
+}
+
+export type CallEndReason =
+  | "declined"
+  | "no-answer"
+  | "cancelled"
+  | "ended"
+  | "disconnected"
+  | "answered-elsewhere";
+
+export interface CallEndedPayload {
+  callId: string;
+  reason: CallEndReason;
+}
+
+export interface CallSignalPayload {
+  callId: string;
+  data: {
+    description?: RTCSessionDescriptionInit;
+    candidate?: RTCIceCandidateInit;
+  };
+}
+
+export interface CallState {
+  status: CallStatus;
+  callId: string | null;
+  conversationId: string | null;
+  peer: CallPeer | null;
+  video: boolean;
+  localStream: MediaStream | null;
+  remoteStream: MediaStream | null;
+  micOn: boolean;
+  camOn: boolean;
+  /** Mốc kết nối media thành công, dùng để đếm thời lượng cuộc gọi. */
+  connectedAt: number | null;
+
+  startCall: (conversationId: string, peer: CallPeer, video: boolean) => Promise<void>;
+  accept: () => Promise<void>;
+  decline: () => void;
+  hangup: () => void;
+  toggleMic: () => void;
+  toggleCam: () => void;
+  handleIncoming: (payload: CallIncomingPayload) => void;
+  handleAccepted: (payload: { callId: string }) => Promise<void>;
+  handleSignal: (payload: CallSignalPayload) => void;
+  handleEnded: (payload: CallEndedPayload) => void;
+  /** Socket rớt: server đã kết thúc call, chỉ cần dọn ở client. */
+  handleDisconnect: () => void;
+}
+
 export interface FriendState {
   friends: Friend[];
   loading: boolean;

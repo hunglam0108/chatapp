@@ -2,6 +2,7 @@ import { Server } from "socket.io";
 import type http from "http";
 import { socketAuthMiddleware } from "../middlewares/socketMiddleware.ts";
 import { getUserConversationsForSocketIO } from "../controllers/conservationController.ts";
+import { registerCallHandlers } from "./callHandlers.ts";
 
 let io: Server | null = null;
 
@@ -24,6 +25,8 @@ export const initSocket = (httpServer: http.Server) => {
 
   io.on("connection", async (socket: any) => {
     const user = socket.user;
+
+    registerCallHandlers(io!, socket);
 
     onlineUsers.set(user._id.toString(), socket.id);
 

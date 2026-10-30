@@ -3,7 +3,13 @@ import { io, type Socket } from "socket.io-client";
 import { authStore } from "./authStore";
 import { chatStore } from "./chatStore";
 import { friendStore } from "./friendStore";
-import { SocketState } from "@/types/SocketType";
+import { callStore } from "./callStore";
+import type {
+  CallEndedPayload,
+  CallIncomingPayload,
+  CallSignalPayload,
+  SocketState,
+} from "@/types/SocketType";
 import type { Conversation, Message, Reaction, SeenUser } from "@/types/ConversationType";
 import type { Friend } from "@/types/UserType";
 import { toast } from "sonner";
@@ -92,6 +98,8 @@ export const socketStore = create<SocketState>((set, get) => ({
 
     socket.on("disconnect", (reason) => {
       console.log("Socket disconnected:", reason);
+      // Server kết thúc call khi socket rớt, nên client cũng phải dọn call hiện tại.
+      callStore.getState().handleDisconnect();
     });
 
     // user online — dùng cho badge trạng thái on/off trong sidebar & chat header
@@ -250,6 +258,20 @@ export const socketStore = create<SocketState>((set, get) => ({
     socket.on("group-left", ({ conversation }: { conversation: Conversation }) => {
       chatStore.getState().updateConversation(conversation);
       toast.info("You left the group");
+    });
+
+    // ===== Call 1-1 (WebRTC signaling) =====
+    socket.on("call:incoming", (payload: CallIncomingPayload) => {
+      callStore.getState().handleIncoming(payload);
+    });
+    socket.on("call:accepted", (payload: { callId: string }) => {
+      void callStore.getState().handleAccepted(payload);
+    });
+    socket.on("call:signal", (payload: CallSignalPayload) => {
+      callStore.getState().handleSignal(payload);
+    });
+    socket.on("call:ended", (payload: CallEndedPayload) => {
+      callStore.getState().handleEnded(payload);
     });
 
     // ===== Lời mời kết bạn (real-time) =====

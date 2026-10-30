@@ -12,10 +12,12 @@ import {
   PaletteIcon,
   PanelLeftIcon,
   PencilIcon,
+  PhoneIcon,
   SendIcon,
   SquareIcon,
   Trash2Icon,
   Undo2Icon,
+  VideoIcon,
   XIcon,
 } from "lucide-react";
 import {
@@ -31,6 +33,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { chatStore } from "@/store/chatStore";
 import { authStore } from "@/store/authStore";
+import { callStore } from "@/store/callStore";
 import {
   useConversationMeta,
   useSendMessage,
@@ -379,6 +382,7 @@ export function ChatHeader() {
   >(null);
   const [busy, setBusy] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const callIdle = callStore((s) => s.status === "idle");
 
   if (!meta) return null;
 
@@ -455,6 +459,26 @@ export function ChatHeader() {
       )}
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
+        {meta.otherParticipant
+          ? ([false, true] as const).map((video) => (
+              <Button
+                key={String(video)}
+                variant="ghost"
+                size="icon"
+                aria-label={video ? "Video call" : "Voice call"}
+                title={meta.isOnline ? (video ? "Video call" : "Voice call") : "User is offline"}
+                className="text-muted-foreground hover:text-foreground"
+                disabled={!meta.isOnline || !callIdle}
+                onClick={() =>
+                  void callStore
+                    .getState()
+                    .startCall(conversation._id, meta.otherParticipant!, video)
+                }
+              >
+                {video ? <VideoIcon /> : <PhoneIcon />}
+              </Button>
+            ))
+          : null}
         <Button
           variant="ghost"
           size="icon"
