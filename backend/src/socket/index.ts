@@ -32,6 +32,9 @@ export const initSocket = (httpServer: http.Server) => {
 
     io!.emit("online-users", Array.from(onlineUsers.keys()));
 
+    // Join room user trước khi await DB, để call/event gửi tới user không bị rơi lúc vừa connect.
+    socket.join(user._id.toString());
+
     const conversationIds = await getUserConversationsForSocketIO(user._id);
     conversationIds.forEach((id: string) => {
       socket.join(id);
@@ -40,8 +43,6 @@ export const initSocket = (httpServer: http.Server) => {
     socket.on("join-conversation", (conversationId: string) => {
       socket.join(conversationId);
     });
-
-    socket.join(user._id.toString());
 
     socket.on("disconnect", () => {
       onlineUsers.delete(user._id.toString());

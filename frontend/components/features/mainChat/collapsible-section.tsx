@@ -31,38 +31,39 @@ export function CollapsibleSection({
 
   return (
     <SidebarGroup>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
+      {/* Action nằm cạnh nút toggle (không lồng <button> trong <button>). */}
+      <div
         className={cn(
-          "flex w-full items-center gap-1.5 rounded-md border border-transparent px-2 py-1.5",
-          "text-xs font-medium text-sidebar-foreground/70 transition-colors outline-none",
-          "hover:border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          "focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          "flex w-full items-center gap-1.5 rounded-md border border-transparent pr-2",
+          "text-xs font-medium text-sidebar-foreground/70 transition-colors",
+          "hover:border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         )}
       >
-        <ChevronDownIcon
-          className={cn(
-            "size-3.5 shrink-0 transition-transform duration-200",
-            !open && "-rotate-90"
-          )}
-        />
-        <span>{label}</span>
-        {/* {typeof count === "number" && count > 0 ? (
-          <span className="ml-auto text-[10px] font-normal text-muted-foreground">
-            {count}
-          </span>
-        ) : null} */}
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="flex flex-1 items-center gap-1.5 rounded-md px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        >
+          <ChevronDownIcon
+            className={cn(
+              "size-3.5 shrink-0 transition-transform duration-200",
+              !open && "-rotate-90"
+            )}
+          />
+          <span>{label}</span>
+          {/* {typeof count === "number" && count > 0 ? (
+            <span className="ml-auto text-[10px] font-normal text-muted-foreground">
+              {count}
+            </span>
+          ) : null} */}
+        </button>
         {action ? (
-          <span
-            className={cn("ml-auto flex items-center", count ? "ml-1.5" : "")}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <span className={cn("ml-auto flex items-center", count ? "ml-1.5" : "")}>
             {action}
           </span>
         ) : null}
-      </button>
+      </div>
       {open ? (
         <div className="mt-1 max-h-72 overflow-y-auto pr-0.5">{children}</div>
       ) : null}
