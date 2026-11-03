@@ -7,6 +7,14 @@ import {
   Reaction,
 } from "@/types/ConversationType";
 
+/** Settings dùng chung của conversation; backgroundUrl null = gỡ ảnh nền custom. */
+export interface ChatSettings {
+  theme?: ChatThemeId;
+  quickEmoji?: string;
+  backgroundUrl?: string | null;
+  bubbleColor?: string | null;
+}
+
 /** Đính kèm tùy chọn đi kèm tin nhắn chat. */
 export interface MessageAttachments {
   imgUrl?: string;
@@ -45,14 +53,14 @@ export const chatService = {
     attachments?: MessageAttachments,
     conversationId?: string
   ) {
-    const res = await api.post<Message>("/messages/direct", {
+    const res = await api.post<{ message: Message }>("/messages/direct", {
       recipientId,
       content,
       ...attachments,
       conversationId,
     });
 
-    return res;
+    return res.message;
   },
 
   async sendGroupMessage(
@@ -60,12 +68,12 @@ export const chatService = {
     content: string = "",
     attachments?: MessageAttachments
   ) {
-    const res = await api.post<Message>("/messages/group", {
+    const res = await api.post<{ message: Message }>("/messages/group", {
       conversationId,
       content,
       ...attachments,
     });
-    return res;
+    return res.message;
   },
 
   async markAsSeen(conversationId: string) {
@@ -95,11 +103,14 @@ export const chatService = {
     return res.conversation;
   },
 
-  async updateSettings(
-    conversationId: string,
-    settings: { theme?: ChatThemeId; quickEmoji?: string }
-  ) {
-    return api.patch<{ conversationId: string; theme: ChatThemeId; quickEmoji: string }>(
+  async updateSettings(conversationId: string, settings: ChatSettings) {
+    return api.patch<{
+      conversationId: string;
+      theme: ChatThemeId;
+      quickEmoji: string;
+      backgroundUrl: string | null;
+      bubbleColor: string | null;
+    }>(
       `/conversations/${conversationId}/settings`,
       settings
     );

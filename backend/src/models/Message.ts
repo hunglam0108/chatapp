@@ -27,6 +27,17 @@ const messageSchema = new mongoose.Schema({
     },
     // Custom emoji gửi riêng lẻ, hiển thị dạng sticker.
     stickerUrl: String,
+    // Preview (og:title/description/image) của link đầu tiên trong content, do server fetch.
+    linkPreview: {
+        type: new mongoose.Schema({
+            url: String,
+            title: String,
+            description: String,
+            image: String,
+            siteName: String,
+        }, { _id: false }),
+        default: undefined
+    },
     editedAt: Date,
     // Bị người gửi thu hồi: xóa nội dung và đính kèm, chỉ giữ placeholder.
     recalledAt: Date,

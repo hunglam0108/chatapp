@@ -195,12 +195,22 @@ export const socketStore = create<SocketState>((set, get) => ({
         conversationId,
         theme,
         quickEmoji,
+        backgroundUrl,
+        bubbleColor,
       }: {
         conversationId: string;
         theme: string;
         quickEmoji: string;
+        backgroundUrl?: string | null;
+        bubbleColor?: string | null;
       }) => {
-        queueConversationPatch({ _id: conversationId, theme, quickEmoji });
+        queueConversationPatch({
+          _id: conversationId,
+          theme,
+          quickEmoji,
+          backgroundUrl: backgroundUrl ?? null,
+          bubbleColor: bubbleColor ?? null,
+        });
       }
     );
 

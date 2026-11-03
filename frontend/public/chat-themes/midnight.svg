@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMax slice">
+  <path d="M1000 90 a75 75 0 1 0 60 120 a60 60 0 1 1 -60 -120Z" fill="#a78bfa" fill-opacity="0.22"/>
+  <g fill="#c4b5fd" fill-opacity="0.35">
+    <circle cx="120" cy="90" r="3"/><circle cx="260" cy="180" r="2"/><circle cx="380" cy="70" r="2.5"/>
+    <circle cx="520" cy="150" r="2"/><circle cx="660" cy="60" r="3"/><circle cx="780" cy="200" r="2"/>
+    <circle cx="880" cy="110" r="2"/><circle cx="1140" cy="260" r="2.5"/><circle cx="60" cy="300" r="2"/>
+    <circle cx="300" cy="330" r="2.5"/><circle cx="700" cy="330" r="2"/><circle cx="960" cy="360" r="2"/>
+  </g>
+  <g fill="#ddd6fe" fill-opacity="0.4">
+    <path d="M450 250 l5 13 13 5 -13 5 -5 13 -5 -13 -13 -5 13 -5Z"/>
+    <path d="M180 220 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4Z"/>
+    <path d="M840 300 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4Z"/>
+  </g>
+  <path d="M0 650 C200 570 380 660 600 600 S980 560 1200 640 V800 H0Z" fill="#6d28d9" fill-opacity="0.14"/>
+  <path d="M0 720 C260 660 460 740 720 690 S1060 670 1200 715 V800 H0Z" fill="#4c1d95" fill-opacity="0.18"/>
+</svg>

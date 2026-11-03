@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <path id="pine" d="M0 0 L-45 80 H-20 L-60 150 H-25 L-70 230 H70 L25 150 H60 L20 80 H45Z"/>
+  </defs>
+  <circle cx="220" cy="160" r="60" fill="#84cc16" fill-opacity="0.10"/>
+  <path d="M0 640 C200 580 400 660 600 610 S1000 580 1200 630 V800 H0Z" fill="#22c55e" fill-opacity="0.09"/>
+  <g fill="#16a34a" fill-opacity="0.12">
+    <use href="#pine" x="90" y="470"/>
+    <use href="#pine" x="300" y="440" transform="translate(300 440) scale(1.15) translate(-300 -440)"/>
+    <use href="#pine" x="900" y="450" transform="translate(900 450) scale(1.2) translate(-900 -450)"/>
+    <use href="#pine" x="1110" y="480"/>
+  </g>
+  <g fill="#15803d" fill-opacity="0.15">
+    <use href="#pine" x="190" y="540" transform="translate(190 540) scale(0.9) translate(-190 -540)"/>
+    <use href="#pine" x="1010" y="550" transform="translate(1010 550) scale(0.85) translate(-1010 -550)"/>
+    <use href="#pine" x="600" y="600" transform="translate(600 600) scale(0.7) translate(-600 -600)"/>
+  </g>
+  <path d="M0 730 C250 690 450 750 700 715 S1050 690 1200 725 V800 H0Z" fill="#15803d" fill-opacity="0.14"/>
+</svg>

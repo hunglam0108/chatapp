@@ -7,6 +7,7 @@ import {
 import { getIo } from "../socket/index.ts";
 import { isValidEmoji } from "../utils/emojiHelper.ts";
 import { deleteCloudinaryFiles, isUploadedAttachmentUrl } from "../utils/cloudinary.ts";
+import { attachLinkPreview, extractFirstUrl } from "../utils/linkPreview.ts";
 
 export const sendDirectMessage = async (req, res) => {
   try {
@@ -58,6 +59,7 @@ export const sendDirectMessage = async (req, res) => {
     await conversation.save();
 
     emitNewMessage(getIo(), conversation, message);
+    void attachLinkPreview(message);
 
     return res.status(201).json({ message });
   } catch (error) {
@@ -96,6 +98,7 @@ export const sendGroupMessage = async (req, res) => {
 
     await conversation.save();
     emitNewMessage(getIo(), conversation, message);
+    void attachLinkPreview(message);
 
     return res.status(201).json({ message });
   } catch (error) {
@@ -204,9 +207,12 @@ export const editMessage = async (req, res) => {
       return res.status(400).json({ message: "Messages can only be edited within 15 minutes" });
     }
 
-    message.set({ content, editedAt: new Date() });
+    // Link đổi thì bỏ preview cũ và fetch lại cho link mới.
+    const linkChanged = extractFirstUrl(content) !== extractFirstUrl(message.content);
+    message.set({ content, editedAt: new Date(), ...(linkChanged ? { linkPreview: undefined } : {}) });
     await message.save();
     await emitMessageUpdated(message);
+    if (linkChanged) void attachLinkPreview(message);
 
     return res.status(200).json({ message });
   } catch (error) {
@@ -237,6 +243,7 @@ export const recallMessage = async (req, res) => {
       fileUrl: undefined,
       fileMeta: undefined,
       stickerUrl: undefined,
+      linkPreview: undefined,
       editedAt: undefined,
       reactions: [],
       recalledAt: new Date(),

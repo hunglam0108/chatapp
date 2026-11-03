@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { EmojiClickData } from "emoji-picker-react";
 import {
@@ -38,7 +38,7 @@ import {
   useConversationMeta,
   useSendMessage,
 } from "@/hooks/use-chat";
-import type { Message } from "@/types/ConversationType";
+import type { LinkPreview, Message } from "@/types/ConversationType";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { ConfirmDialog } from "./confirm-dialog";
 import { createPortal } from "react-dom";
@@ -79,6 +79,67 @@ const TIME_GROUP_MS = 5 * 60 * 1000;
 const messageActionClass =
   "shrink-0 self-center rounded-full p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-60";
 
+const URL_SPLIT = /(https?:\/\/[^\s<>"']+)/gi;
+const TRAILING_PUNCTUATION = /[.,!?;:)\]}]+$/;
+
+/** Text tin nhắn với các URL thành link bấm được (dấu câu cuối link không tính). */
+function LinkifiedText({ text }: { text: string }) {
+  return text.split(URL_SPLIT).map((part, i) => {
+    if (i % 2 === 0) return part;
+    const url = part.replace(TRAILING_PUNCTUATION, "");
+    return (
+      <Fragment key={i}>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 break-all hover:opacity-80"
+        >
+          {url}
+        </a>
+        {part.slice(url.length)}
+      </Fragment>
+    );
+  });
+}
+
+function LinkPreviewCard({ preview, isOwn }: { preview: LinkPreview; isOwn: boolean }) {
+  return (
+    <a
+      href={preview.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "mt-1.5 block w-64 max-w-full overflow-hidden rounded-lg border",
+        isOwn
+          ? "border-primary-foreground/25 bg-primary-foreground/10 hover:bg-primary-foreground/20"
+          : "border-border bg-background hover:bg-accent"
+      )}
+    >
+      {preview.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={preview.image}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="aspect-[1.91/1] w-full object-cover"
+          onError={(e) => (e.currentTarget.style.display = "none")}
+        />
+      ) : null}
+      <div className="flex flex-col gap-0.5 px-2.5 py-2 text-xs">
+        {preview.siteName ? (
+          <span className="truncate uppercase opacity-70">{preview.siteName}</span>
+        ) : null}
+        {preview.title ? <span className="line-clamp-2 font-semibold">{preview.title}</span> : null}
+        {preview.description ? (
+          <span className="line-clamp-2 opacity-80">{preview.description}</span>
+        ) : null}
+      </div>
+    </a>
+  );
+}
+
 function MessageRow({
   message,
   showAvatar,
@@ -109,14 +170,15 @@ function MessageRow({
   const [busy, setBusy] = useState(false);
 
   const recalled = !!message.recalledAt;
-  const canReactHere = canReact && !recalled;
+  // Tin optimistic chưa có _id thật nên chưa react/sửa/thu hồi được.
+  const canReactHere = canReact && !recalled && !message.pending;
   const canEdit = isOwn && canReactHere && !!message.content && !message.stickerUrl;
 
   const react = (emoji: string) => {
     chatStore
       .getState()
       .toggleReaction(message._id, emoji)
-      .catch(() => toast.error("Could not react to this message"));
+      .catch((err) => toast.error(getErrorMessage(err, "Could not react to this message")));
   };
 
   const startEdit = () => {
@@ -203,7 +265,8 @@ function MessageRow({
         </>
       ) : null}
       <div
-        className="max-w-[65%] flex flex-col"
+        className={cn("max-w-[65%] flex flex-col", message.pending && "opacity-60")}
+        aria-busy={message.pending || undefined}
       >
         {isGroup && !isOwn && showAvatar ? (
           <p className="mb-1 ml-2 text-[10px] font-semibold text-primary/90">
@@ -260,8 +323,11 @@ function MessageRow({
                 bare ? "text-4xl leading-tight" : "leading-relaxed"
               )}
             >
-              {message.content}
+              <LinkifiedText text={message.content} />
             </p>
+          ) : null}
+          {message.linkPreview && !recalled ? (
+            <LinkPreviewCard preview={message.linkPreview} isOwn={isOwn} />
           ) : null}
           {message.imgUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -353,11 +419,17 @@ export function ChatPanel() {
   const theme = chatStore((s) =>
     s.conversations.find((c) => c._id === s.activeConversationId)?.theme
   );
+  const backgroundUrl = chatStore((s) =>
+    s.conversations.find((c) => c._id === s.activeConversationId)?.backgroundUrl
+  );
+  const bubbleColor = chatStore((s) =>
+    s.conversations.find((c) => c._id === s.activeConversationId)?.bubbleColor
+  );
 
   return (
     <div
       className="flex h-full min-h-0 w-full flex-col bg-background"
-      style={chatThemeStyle(theme)}
+      style={chatThemeStyle(theme, backgroundUrl, bubbleColor)}
     >
       <ChatHeader />
       <MessageList />
@@ -592,7 +664,12 @@ function MessageList() {
   return (
     <div
       className="flex-1 overflow-y-auto px-4 py-4"
-      style={{ backgroundImage: "var(--chat-background)" }}
+      // Nền đứng yên khi cuộn (attachment mặc định của scroll container), ảnh phủ kín và bám đáy.
+      style={{
+        backgroundImage: "var(--chat-background)",
+        backgroundSize: "cover",
+        backgroundPosition: "center bottom",
+      }}
     >
       {messageLoading && items.length === 0 ? (
         <div className="flex items-center justify-center py-10 text-muted-foreground">
@@ -689,9 +766,10 @@ function MessageComposer() {
     setAttachment(null);
     try {
       await sendMessage(content, pending ?? undefined);
-    } catch {
+    } catch (err) {
       setValue(content); // khôi phục bản nháp khi thất bại
       setAttachment(pending);
+      toast.error(getErrorMessage(err, "Could not send the message. Try again!"));
     }
   };
 
@@ -872,6 +950,14 @@ function MessageComposer() {
           <Input
             value={value}
             onChange={(e) => setValue(e.target.value)}
+            onPaste={(e) => {
+              const image = Array.from(e.clipboardData.files).find((f) =>
+                f.type.startsWith("image/")
+              );
+              if (!image) return;
+              e.preventDefault();
+              void handleFilePicked(image);
+            }}
             placeholder={
               hasLeftGroup
                 ? "You left this group"

@@ -1,8 +1,7 @@
 import type { Socket } from "socket.io-client";
 import { Conversation, CustomEmoji, Message, Reaction } from "./ConversationType";
-import type { ChatThemeId } from "@/lib/chat-themes";
 import { Friend, FriendRequest, SearchUser } from "./UserType";
-import type { MessageAttachments } from "@/server/chat";
+import type { ChatSettings, MessageAttachments } from "@/server/chat";
 
 
 export interface AuthState {
@@ -74,10 +73,10 @@ export interface ChatState {
     name: string,
     memberIds: string[]
   ) => Promise<void>;
-  /** Đổi theme / quick emoji dùng chung của conversation. */
+  /** Đổi theme / quick emoji / ảnh nền custom dùng chung của conversation. */
   updateConversationSettings: (
     conversationId: string,
-    settings: { theme?: ChatThemeId; quickEmoji?: string }
+    settings: ChatSettings
   ) => Promise<void>;
   toggleReaction: (messageId: string, emoji: string) => Promise<void>;
   /** Áp dụng danh sách reaction do server đẩy về (socket event đã gom batch). */

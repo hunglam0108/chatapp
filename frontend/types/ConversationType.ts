@@ -69,6 +69,10 @@ export interface Conversation {
   unreadCounts: Record<string, number>; // key = userId, value = số tin chưa đọc
   theme?: ChatThemeId;
   quickEmoji?: string;
+  /** Ảnh nền custom, đè lên ảnh của theme. */
+  backgroundUrl?: string | null;
+  /** Màu bubble (#rrggbb) của theme Custom; null = màu Default. */
+  bubbleColor?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -87,13 +91,25 @@ export interface Message {
   fileUrl?: string | null;
   fileMeta?: FileMeta | null;
   stickerUrl?: string | null;
+  linkPreview?: LinkPreview | null;
   reactions?: Reaction[];
   editedAt?: string | null;
   recalledAt?: string | null;
   updatedAt?: string | null;
   createdAt: string;
   isOwn?: boolean;
+  /** Tin nhắn optimistic đang chờ API — _id là id tạm. */
+  pending?: boolean;
 }
+/** Preview của link đầu tiên trong tin nhắn, server fetch sau khi gửi. */
+export interface LinkPreview {
+  url: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  siteName?: string;
+}
+
 export interface Reaction {
   userId: string;
   emoji: string;

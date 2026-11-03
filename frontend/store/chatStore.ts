@@ -6,6 +6,60 @@ import { ChatState } from "@/types/SocketType";
 import { chatService, type MessageAttachments } from "@/server/chat";
 import { socketStore } from "./socketStore";
 
+const updateItems = (conversationId: string, fn: (items: Message[]) => Message[]) =>
+  chatStore.setState((state) => {
+    const bucket = state.messages[conversationId];
+    if (!bucket) return state;
+    return {
+      messages: { ...state.messages, [conversationId]: { ...bucket, items: fn(bucket.items) } },
+    };
+  });
+
+const MATCH_KEYS = ["content", "imgUrl", "audioUrl", "fileUrl", "stickerUrl"] as const;
+/** Tin thật (từ socket) có khớp với tin optimistic đang chờ không. */
+const matchesPending = (pending: Message, real: Message) =>
+  MATCH_KEYS.every((k) => (pending[k] || null) === (real[k] || null));
+
+/** Hiện tin nhắn ngay, thay bằng tin thật khi API trả về, gỡ đi nếu lỗi. */
+const sendOptimistic = async (
+  conversationId: string | null,
+  content: string,
+  attachments: MessageAttachments | undefined,
+  request: () => Promise<Message>
+) => {
+  const user = authStore.getState().user;
+  const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  if (conversationId && user) {
+    updateItems(conversationId, (items) => [
+      ...items,
+      {
+        _id: tempId,
+        conversationId,
+        senderId: user._id,
+        content,
+        ...attachments,
+        createdAt: new Date().toISOString(),
+        isOwn: true,
+        pending: true,
+      },
+    ]);
+  }
+
+  try {
+    const real = await request();
+    if (!conversationId) return;
+    updateItems(conversationId, (items) =>
+      // Socket có thể đã đẩy tin thật về trước response.
+      items.some((m) => m._id === real._id)
+        ? items.filter((m) => m._id !== tempId)
+        : items.map((m) => (m._id === tempId ? { ...real, isOwn: true } : m))
+    );
+  } catch (error) {
+    if (conversationId) updateItems(conversationId, (items) => items.filter((m) => m._id !== tempId));
+    throw error;
+  }
+};
+
 export const chatStore = create<ChatState>()(
   persist(
     (set, get) => ({
@@ -90,38 +144,34 @@ export const chatStore = create<ChatState>()(
         content: string,
         attachments?: MessageAttachments
       ) => {
-        try {
-          const { activeConversationId } = get();
-          await chatService.sendDirectMessage(
+        const { activeConversationId } = get();
+        await sendOptimistic(activeConversationId, content, attachments, () =>
+          chatService.sendDirectMessage(
             recipientId,
             content,
             attachments,
             activeConversationId || undefined
-          );
-          set((state) => ({
-            conversations: state.conversations.map((c) =>
-              c._id === activeConversationId ? { ...c, seenBy: [] } : c
-            ),
-          }));
-        } catch (error) {
-          console.error("Error sending direct message", error);
-        }
+          )
+        );
+        set((state) => ({
+          conversations: state.conversations.map((c) =>
+            c._id === activeConversationId ? { ...c, seenBy: [] } : c
+          ),
+        }));
       },
       sendGroupMessage: async (
         conversationId: string,
         content: string,
         attachments?: MessageAttachments
       ) => {
-        try {
-          await chatService.sendGroupMessage(conversationId, content, attachments);
-          set((state) => ({
-            conversations: state.conversations.map((c) =>
-              c._id === get().activeConversationId ? { ...c, seenBy: [] } : c
-            ),
-          }));
-        } catch (error) {
-          console.error("Error sending group message", error);
-        }
+        await sendOptimistic(conversationId, content, attachments, () =>
+          chatService.sendGroupMessage(conversationId, content, attachments)
+        );
+        set((state) => ({
+          conversations: state.conversations.map((c) =>
+            c._id === conversationId ? { ...c, seenBy: [] } : c
+          ),
+        }));
       },
       addMessages: (incoming: Message[]) => {
         const { user } = authStore.getState();
@@ -137,12 +187,19 @@ export const chatStore = create<ChatState>()(
               continue;
             }
 
+            const isOwn = message.senderId === user?._id;
+            const real = { ...message, isOwn };
+            // Tin của mình về qua socket trước response API: thay tin optimistic, không thêm trùng.
+            const pendingIndex = isOwn
+              ? bucket.items.findIndex((m) => m.pending && matchesPending(m, message))
+              : -1;
+
             messages[message.conversationId] = {
               ...bucket,
-              items: [
-                ...bucket.items,
-                { ...message, isOwn: message.senderId === user?._id },
-              ],
+              items:
+                pendingIndex >= 0
+                  ? bucket.items.map((m, i) => (i === pendingIndex ? real : m))
+                  : [...bucket.items, real],
             };
             changed = true;
           }
@@ -158,15 +215,48 @@ export const chatStore = create<ChatState>()(
         }));
       },
       updateConversationSettings: async (conversationId, settings) => {
-        const { theme, quickEmoji } = await chatService.updateSettings(
-          conversationId,
-          settings
-        );
-        get().updateConversation({ _id: conversationId, theme, quickEmoji });
+        const { theme, quickEmoji, backgroundUrl, bubbleColor } =
+          await chatService.updateSettings(conversationId, settings);
+        get().updateConversation({
+          _id: conversationId,
+          theme,
+          quickEmoji,
+          backgroundUrl,
+          bubbleColor,
+        });
       },
       toggleReaction: async (messageId, emoji) => {
-        const update = await chatService.toggleReaction(messageId, emoji);
-        get().applyReactions([update]);
+        const userId = authStore.getState().user?._id;
+        const { messages } = get();
+        const conversationId = Object.keys(messages).find((id) =>
+          messages[id].items.some((m) => m._id === messageId)
+        );
+        const previous =
+          (conversationId &&
+            messages[conversationId].items.find((m) => m._id === messageId)?.reactions) ||
+          [];
+
+        // Cùng logic với backend: bấm lại emoji của mình thì bỏ, emoji khác thì thay.
+        if (conversationId && userId) {
+          const mine = previous.find((r) => r.userId === userId);
+          const others = previous.filter((r) => r.userId !== userId);
+          get().applyReactions([
+            {
+              conversationId,
+              messageId,
+              reactions: mine?.emoji === emoji ? others : [...others, { userId, emoji }],
+            },
+          ]);
+        }
+
+        try {
+          get().applyReactions([await chatService.toggleReaction(messageId, emoji)]);
+        } catch (error) {
+          if (conversationId) {
+            get().applyReactions([{ conversationId, messageId, reactions: previous }]);
+          }
+          throw error;
+        }
       },
       applyReactions: (updates) => {
         set((state) => {

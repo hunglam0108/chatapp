@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import { DEFAULT_QUICK_EMOJI } from "../utils/emojiHelper.ts";
 
-// Giữ đồng bộ với frontend/lib/chat-themes.ts.
-export const CHAT_THEME_IDS = ["default", "ocean", "sunset", "forest", "rose", "midnight"];
+// Giữ đồng bộ với frontend/lib/chat-themes.ts. "custom" = backgroundUrl + bubbleColor của conversation.
+export const CHAT_THEME_IDS = ["default", "ocean", "sunset", "forest", "rose", "midnight", "custom"];
 
 const participantSchema = new mongoose.Schema({
     userId: {
@@ -118,6 +118,16 @@ const conversationSchema = new mongoose.Schema({
     quickEmoji: {
         type: String,
         default: DEFAULT_QUICK_EMOJI
+    },
+    // Ảnh nền của theme Custom (Cloudinary); được giữ lại khi chuyển sang theme khác.
+    backgroundUrl: {
+        type: String,
+        default: null
+    },
+    // Màu bubble (#rrggbb) của theme Custom; null = màu Default.
+    bubbleColor: {
+        type: String,
+        default: null
     },
     unreadCounts: {
         type: Map,

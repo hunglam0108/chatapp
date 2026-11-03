@@ -2,7 +2,7 @@ import Conversation, { CHAT_THEME_IDS } from "../models/Conversation.ts";
 import Message from "../models/Message.ts";
 import { getIo } from "../socket/index.ts";
 import { isValidEmoji } from "../utils/emojiHelper.ts";
-import { deleteCloudinaryFiles } from "../utils/cloudinary.ts";
+import { deleteCloudinaryFiles, isUploadedAttachmentUrl } from "../utils/cloudinary.ts";
 
 /**
  * Định dạng conversation doc cho client: participants đang hoạt động đã populate,
@@ -473,7 +473,10 @@ export const deleteConversation = async (req: any, res: any) => {
       { conversationId: conversation._id },
       { imgUrl: 1, audioUrl: 1, fileUrl: 1 }
     ).lean();
-    await deleteCloudinaryFiles(files.flatMap((m) => [m.imgUrl, m.audioUrl, m.fileUrl]));
+    await deleteCloudinaryFiles([
+      ...files.flatMap((m) => [m.imgUrl, m.audioUrl, m.fileUrl]),
+      conversation.backgroundUrl,
+    ]);
     await Message.deleteMany({ conversationId: conversation._id });
     await Conversation.findByIdAndDelete(conversation._id);
 
@@ -490,17 +493,37 @@ export const deleteConversation = async (req: any, res: any) => {
 };
 
 /**
- * PATCH /api/conversations/:conversationId/settings { theme?, quickEmoji? }
- * Theme chat + quick emoji dùng chung cho mọi thành viên, giống Messenger.
+ * PATCH /api/conversations/:conversationId/settings { theme?, quickEmoji?, backgroundUrl? }
+ * Theme chat + quick emoji + ảnh nền dùng chung cho mọi thành viên, giống Messenger.
+ * backgroundUrl: null để gỡ ảnh nền custom.
  */
 export const updateConversationSettings = async (req: any, res: any) => {
   try {
     const { conversationId } = req.params;
-    const { theme, quickEmoji } = req.body ?? {};
+    const { theme, quickEmoji, backgroundUrl, bubbleColor } = req.body ?? {};
     const userId = req.user._id.toString();
 
-    if (theme === undefined && quickEmoji === undefined) {
+    if (
+      theme === undefined &&
+      quickEmoji === undefined &&
+      backgroundUrl === undefined &&
+      bubbleColor === undefined
+    ) {
       return res.status(400).json({ message: "No changes provided" });
+    }
+    if (
+      bubbleColor !== undefined &&
+      bubbleColor !== null &&
+      !/^#[0-9a-f]{6}$/i.test(bubbleColor)
+    ) {
+      return res.status(400).json({ message: "Invalid bubble color" });
+    }
+    if (
+      backgroundUrl !== undefined &&
+      backgroundUrl !== null &&
+      (!isUploadedAttachmentUrl(backgroundUrl) || !backgroundUrl.includes("/image/upload/"))
+    ) {
+      return res.status(400).json({ message: "Invalid background image" });
     }
     if (theme !== undefined && !CHAT_THEME_IDS.includes(theme)) {
       return res.status(400).json({ message: "Invalid theme" });
@@ -523,12 +546,29 @@ export const updateConversationSettings = async (req: any, res: any) => {
 
     if (theme !== undefined) conversation.theme = theme;
     if (quickEmoji !== undefined) conversation.quickEmoji = quickEmoji;
+    const oldBackgroundUrl = conversation.backgroundUrl;
+    if (backgroundUrl !== undefined) conversation.backgroundUrl = backgroundUrl;
+    if (bubbleColor !== undefined) conversation.bubbleColor = bubbleColor?.toLowerCase() ?? null;
+
+    // Theme Custom cần có ảnh; gỡ ảnh khi đang dùng Custom thì quay về Default.
+    if (conversation.theme === "custom" && !conversation.backgroundUrl) {
+      if (theme === "custom") {
+        return res.status(400).json({ message: "Upload a background image first" });
+      }
+      conversation.theme = "default";
+    }
     await conversation.save();
+
+    if (oldBackgroundUrl && oldBackgroundUrl !== conversation.backgroundUrl) {
+      void deleteCloudinaryFiles([oldBackgroundUrl]);
+    }
 
     const payload = {
       conversationId,
       theme: conversation.theme,
       quickEmoji: conversation.quickEmoji,
+      backgroundUrl: conversation.backgroundUrl ?? null,
+      bubbleColor: conversation.bubbleColor ?? null,
       updatedBy: userId,
     };
     getIo().to(conversationId).emit("conversation-settings-updated", payload);
