@@ -5,6 +5,18 @@ export const authApi = {
         const response = await api.get<User>('/user/me')
         return response
     },
+    updateAvatar: async (avatarUrl: string) => {
+        const response = await api.patch<User>('/user/me/avatar', { avatarUrl })
+        return response
+    },
+    updateProfile: async (displayName: string) => {
+        const response = await api.patch<User>('/user/me', { displayName })
+        return response
+    },
+    changePassword: async (currentPassword: string, newPassword: string) => {
+        const response = await api.patch<{ message: string }>('/user/me/password', { currentPassword, newPassword })
+        return response
+    },
     signIn: async (username: string, password: string) => {
         const response = await api.post<AuthResponse>('/auth/signIn', { username, password })
         return response

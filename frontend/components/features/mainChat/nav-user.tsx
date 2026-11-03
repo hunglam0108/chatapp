@@ -20,7 +20,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { ChevronsUpDownIcon, LogOutIcon, MoonIcon, SunIcon } from "lucide-react"
+import { ChevronsUpDownIcon, LogOutIcon, MoonIcon, SunIcon, UserIcon } from "lucide-react"
 import { authStore } from "@/store/authStore"
 import { themeStore } from "@/store/themeStore"
 import { authApi } from "@/server/auth"
@@ -102,6 +102,10 @@ export function NavUser({
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push("/profile")}>
+              <UserIcon />
+              Account
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={toggleTheme}>
               {isDark ? <SunIcon /> : <MoonIcon />}
               {isDark ? "Light mode" : "Dark mode"}
