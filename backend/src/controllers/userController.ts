@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import User from '../models/User.ts';
 import Session from '../models/Session.ts';
+import { getIo } from '../socket/index.ts';
 import { deleteCloudinaryFiles, isUploadedAttachmentUrl } from '../utils/cloudinary.ts';
 
 const MAX_DISPLAY_NAME = 50;
@@ -61,6 +62,20 @@ export const changePassword = async (req: Request, res: Response) => {
             userId: user._id,
             refreshToken: { $ne: req.cookies?.refreshToken },
         });
+
+        // Đá các socket khác ra ngay; access token cũ của chúng vẫn còn hạn tới 30 phút.
+        try {
+            const { socketId } = req.body;
+            const sockets = await getIo().in(user._id.toString()).fetchSockets();
+            sockets
+                .filter((s) => s.id !== socketId)
+                .forEach((s) => {
+                    s.emit('force-logout');
+                    s.disconnect();
+                });
+        } catch (err) {
+            console.error('Error forcing logout on other sockets:', err);
+        }
 
         return res.status(200).json({ message: 'Password updated' });
     }

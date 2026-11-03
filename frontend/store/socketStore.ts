@@ -102,6 +102,13 @@ export const socketStore = create<SocketState>((set, get) => ({
       callStore.getState().handleDisconnect();
     });
 
+    // Mật khẩu đổi ở thiết bị khác: chỉ xóa state local (không gọi signOut API,
+    // vì cookie refresh có thể là của chính tab vừa đổi mật khẩu trong cùng trình duyệt).
+    socket.on("force-logout", () => {
+      authStore.getState().signOut();
+      toast.info("Your password was changed. Please sign in again.");
+    });
+
     // user online — dùng cho badge trạng thái on/off trong sidebar & chat header
     socket.on("online-users", (userIds: string[]) => {
       set({ onlineUsers: userIds });

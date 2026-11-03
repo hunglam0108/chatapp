@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { authApi } from "@/server/auth"
+import { socketStore } from "@/store/socketStore"
 
 type Inputs = {
   currentPassword: string
@@ -24,7 +25,11 @@ export function ChangePasswordForm() {
 
   const onSubmit = async (data: Inputs) => {
     try {
-      await authApi.changePassword(data.currentPassword, data.newPassword)
+      await authApi.changePassword(
+        data.currentPassword,
+        data.newPassword,
+        socketStore.getState().socket?.id
+      )
       reset()
       toast.success("Password updated")
     } catch (err) {

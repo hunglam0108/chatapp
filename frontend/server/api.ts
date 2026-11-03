@@ -79,7 +79,8 @@ export class ApiClient {
             // Gửi lại request ban đầu
             return await this.instance(originalRequest);
           } catch (refreshError) {
-            // TODO: Xóa auth state / logout nếu refresh thất bại
+            // Session đã hết/bị thu hồi: xóa state, useAuthInit sẽ redirect về /signin.
+            authStore.getState().signOut();
             return Promise.reject(refreshError);
           } finally {
             this.refreshPromise = null;

@@ -45,6 +45,8 @@ export const initSocket = (httpServer: http.Server) => {
     });
 
     socket.on("disconnect", () => {
+      // Chỉ offline khi không còn socket nào của user (vd. force-logout chỉ đá thiết bị khác).
+      if (io!.sockets.adapter.rooms.get(user._id.toString())?.size) return;
       onlineUsers.delete(user._id.toString());
       io!.emit("online-users", Array.from(onlineUsers.keys()));
     });

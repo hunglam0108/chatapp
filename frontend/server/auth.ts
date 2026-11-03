@@ -13,8 +13,9 @@ export const authApi = {
         const response = await api.patch<User>('/user/me', { displayName })
         return response
     },
-    changePassword: async (currentPassword: string, newPassword: string) => {
-        const response = await api.patch<{ message: string }>('/user/me/password', { currentPassword, newPassword })
+    /** socketId: socket của tab hiện tại — server không force-logout socket này. */
+    changePassword: async (currentPassword: string, newPassword: string, socketId?: string) => {
+        const response = await api.patch<{ message: string }>('/user/me/password', { currentPassword, newPassword, socketId })
         return response
     },
     signIn: async (username: string, password: string) => {
