@@ -50,13 +50,13 @@ export function LoginForm({
       // signIn throw khi thất bại (sai thông tin đăng nhập, lỗi mạng...);
       // catch bên dưới giữ user ở trang này để thử lại.
       await signIn(username, password)
-      router.push('/')
+      // Giữ submitting=true đến khi chuyển trang để nút không nháy về "Login".
+      router.push('/dashboard')
     } catch (err) {
       // Hiển thị lỗi inline (authStore cũng đã toast).
       setServerError(
         err instanceof Error && err.message ? err.message : 'Login failed'
       )
-    } finally {
       setSubmitting(false)
     }
   }

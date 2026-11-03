@@ -181,7 +181,7 @@ export function MascotWidget() {
                 <p className="px-1.5 pb-1 text-xs font-medium text-muted-foreground">
                   Mascot
                 </p>
-                <div className="grid max-h-72 grid-cols-4 gap-1 overflow-y-auto">
+                <div className="grid max-h-72 grid-cols-4 gap-1 overflow-y-auto p-0.5">
                   {MASCOTS.map((m) => (
                     <button
                       key={m.id}
