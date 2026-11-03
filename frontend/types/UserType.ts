@@ -15,6 +15,8 @@ export interface Friend {
   username: string;
   displayName: string;
   avatarUrl?: string;
+  /** Thời điểm kết bạn — chỉ có khi load từ GET /friends. */
+  friendsSince?: string;
 }
 
 export interface FriendRequest {

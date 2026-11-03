@@ -204,9 +204,10 @@ export const getAllFriends = async (req: Request, res: Response) => {
       return res.status(200).json({ friends: [] });
     }
 
-    const friends = friendships.map((f) =>
-      f.userA._id.toString() === userId.toString() ? f.userB : f.userA
-    );
+    const friends = friendships.map((f) => ({
+      ...(f.userA._id.toString() === userId.toString() ? f.userB : f.userA),
+      friendsSince: f.createdAt,
+    }));
 
     return res.status(200).json({ friends });
   } catch (error) {
