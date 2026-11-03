@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { Friend, FriendRequest } from "@/types/UserType";
 import type { FriendState } from "@/types/SocketType";
 import { friendService } from "@/server/friend";
+import { getErrorMessage } from "@/lib/utils";
 
 /** Bộ đếm tăng dần để bỏ các response tìm kiếm về sai thứ tự. */
 let searchSeq = 0;
@@ -93,7 +94,7 @@ export const friendStore = create<FriendState>()((set, get) => ({
     } catch (error) {
       set({ receivedList: previous });
       console.error("Error accepting friend request:", error);
-      toast.error("Failed to accept friend request");
+      toast.error(getErrorMessage(error, "Failed to accept friend request"));
     }
   },
 
@@ -107,7 +108,7 @@ export const friendStore = create<FriendState>()((set, get) => ({
     } catch (error) {
       set({ receivedList: previous });
       console.error("Error declining friend request:", error);
-      toast.error("Failed to decline friend request");
+      toast.error(getErrorMessage(error, "Failed to decline friend request"));
     }
   },
 

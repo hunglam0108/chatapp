@@ -1,6 +1,7 @@
 import { authApi } from '@/server/auth';
 import { toast } from 'sonner';
 import { create } from 'zustand';
+import { getErrorMessage } from '@/lib/utils';
 
 export interface UserInfo {
     _id: string
@@ -93,8 +94,7 @@ export const authStore = create<AuthState>()((set, get) => ({
                 set({ loading: false })
             }
             catch(err) {
-                console.log(err)
-                toast.error('Fail')
+                toast.error(getErrorMessage(err, 'Sign up failed'))
                 set({ loading: false })
             }
         },
@@ -125,7 +125,7 @@ export const authStore = create<AuthState>()((set, get) => ({
                 })
             }
             catch (err) {
-                toast.error('Error')
+                toast.error(getErrorMessage(err, 'Could not load your profile'))
                 throw err
             }
             finally {

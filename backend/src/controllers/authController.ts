@@ -10,17 +10,22 @@ const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 
 export const signUp = async (req: Request, res: Response) => {
     try {
-        const { username, password, email, fullName } = req.body
+        const { password, fullName } = req.body
+        // Schema lưu username/email dạng lowercase nên phải chuẩn hóa trước khi check trùng.
+        const username = String(req.body.username ?? '').trim().toLowerCase()
+        const email = String(req.body.email ?? '').trim().toLowerCase()
 
         if (!username || !password || !email || !fullName) {
             return res
             .status(400)
-            .json({message:`Please input full info user !!!`})
+            .json({ message: 'Please fill in username, full name, email and password' })
         }
 
-        const duplicate = await User.findOne({ username })
-        if (duplicate) {
-            return res.status(400).json({ message: 'Username is esixt' }) 
+        if (await User.exists({ username })) {
+            return res.status(400).json({ message: 'Username is already taken' })
+        }
+        if (await User.exists({ email })) {
+            return res.status(400).json({ message: 'Email is already registered' })
         }
 
         const hashedPassword = await bcrypt.hash(password, 10); //salt=10
@@ -35,7 +40,8 @@ export const signUp = async (req: Request, res: Response) => {
         return res.sendStatus(204)
     }
     catch(err) {
-        return res.status(500).json({ message: `System error !!! Error: ${err}` })
+        console.error('Error signing up:', err)
+        return res.status(500).json({ message: 'Could not create account, please try again later' })
     }
 }
 

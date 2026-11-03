@@ -5,7 +5,7 @@ import { createPortal } from "react-dom"
 import { CheckIcon, Loader2Icon, XIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { cn, getErrorMessage } from "@/lib/utils"
 import {
   CHAT_THEMES,
   DEFAULT_QUICK_EMOJI,
@@ -55,8 +55,8 @@ export function ChatSettingsDialog({
       await chatStore
         .getState()
         .updateConversationSettings(conversation._id, settings)
-    } catch {
-      toast.error("Could not update chat settings. Try again!")
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Could not update chat settings. Try again!"))
     } finally {
       setSaving(false)
     }
@@ -168,8 +168,8 @@ function CustomEmojiManager() {
   const remove = async (emojiId: string) => {
     try {
       await emojiStore.getState().deleteEmoji(emojiId)
-    } catch {
-      toast.error("Could not delete emoji")
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Could not delete emoji"))
     }
   }
 

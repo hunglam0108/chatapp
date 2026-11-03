@@ -39,7 +39,7 @@ import {
   useSendMessage,
 } from "@/hooks/use-chat";
 import type { Message } from "@/types/ConversationType";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { ConfirmDialog } from "./confirm-dialog";
 import { createPortal } from "react-dom";
 import type { Conversation, Participant } from "@/types/ConversationType";
@@ -401,8 +401,8 @@ export function ChatHeader() {
       await chatStore.getState().leaveGroup(activeConversationId);
       toast.success("You left the group");
       setConfirmAction(null);
-    } catch {
-      toast.error("Could not leave the group. Try again!");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Could not leave the group. Try again!"));
     } finally {
       setBusy(false);
     }
@@ -415,8 +415,8 @@ export function ChatHeader() {
       await chatStore.getState().deleteGroup(activeConversationId);
       toast.success("Group deleted");
       setConfirmAction(null);
-    } catch {
-      toast.error("Could not delete the group. Try again!");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Could not delete the group. Try again!"));
     } finally {
       setBusy(false);
     }
@@ -647,8 +647,8 @@ function MessageComposer() {
   const handleEmojiClick = (emojiData: EmojiClickData) => { 
     if (emojiData.isCustom) {
       setShowEmojiPicker(false);
-      sendMessage("", { stickerUrl: emojiData.imageUrl }).catch(() =>
-        toast.error("Could not send the sticker. Try again!")
+      sendMessage("", { stickerUrl: emojiData.imageUrl }).catch((err) =>
+        toast.error(getErrorMessage(err, "Could not send the sticker. Try again!"))
       );
       return;
     }
